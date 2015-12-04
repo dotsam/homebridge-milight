@@ -1,0 +1,19 @@
+{
+  "name": "homebridge-milight",
+  "version": "0.0.1",
+  "description": "MiLight/LimitlessLED/Easybulb Plugin for Homebridge: https://github.com/nfarina/homebridge",
+  "author": "Sam Edwards <sam@samedwards.ca> (https://samedwards.ca/)",
+  "license": "MIT",
+  "bugs": {
+    "url": "http://github.com/dotsam/homebridge-milight/issues"
+  },  
+  "keywords": [
+    "homebridge-plugin"
+  ],
+  "peerDepdendencies": {
+    "homebridge": ">=0.2.0"
+  },
+  "dependencies": {
+    "node-milight-promise": "0.0.x"
+  }
+}
