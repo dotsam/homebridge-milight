@@ -56,7 +56,7 @@ module.exports = function(homebridge) {
   Characteristic = homebridge.hap.Characteristic;
 
   homebridge.registerAccessory("homebridge-milight","MiLight", MiLightAccessory);
-  homebridge.registerPlatform(("homebridge-milight","MiLight", MiLightPlatform);
+  homebridge.registerPlatform("homebridge-milight","MiLight", MiLightPlatform);
 }
 
 function MiLightPlatform(log, config) {
