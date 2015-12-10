@@ -1,50 +1,6 @@
 /*
-
-MiLight platform shim for Homebridge
-Written by Sam Edwards (https://samedwards.ca/)
-
-Uses the node-milight-promise library (https://github.com/mwittig/node-milight-promise) which features some code from
-applamp.nl (http://www.applamp.nl/service/applamp-api/) and uses other details from (http://www.limitlessled.com/dev/)
-
-Configure in config.json as follows:
-
-"platforms": [
-        {
-            "platform":"MiLight",
-            "name":"MiLight",
-            "ip_address": "255.255.255.255",
-            "port": 8899,
-            "type": "rgbw",
-            "delay": 30,
-            "repeat": 3,
-            "zones":["Kitchen Lamp","Bedroom Lamp","Living Room Lamp","Hallway Lamp"]
-        }
-]
-
-Where the parameters are:
- *platform (required): This must be "MiLight", and refers to the name of the accessory as exported from this file
- *name (optional): The display name used for logging output by Homebridge. Best to set to "MiLight"
- *ip_address (optional): The IP address of the WiFi Bridge. Default to the broadcast address of 255.255.255.255 if not specified
- *port (optional): Port of the WiFi bridge. Defaults to 8899 if not specified
- *type (optional): One of either "rgbw", "rgb", or "white", depending on the type of bulb being controlled. This applies to all zones. Defaults to rgbw.
- *delay (optional): Delay between commands sent over UDP. Default 30ms. May cause delays when sending a lot of commands. Try decreasing to improve.
- *repeat (optional): Number of times to repeat the UDP command for better reliability. Default 3
- *zones (required): An array of the names of the zones, in order, 1-4. Use null if a zone is skipped. RGB lamps can only have a single zone.
-
-Tips and Tricks:
- *Setting the brightness of an rgbw or a white bulb will set it to "night mode", which is dimmer than the lowest brightness setting
- *White and rgb bulbs don't support absolute brightness setting, so we just send a brightness up/brightness down command depending
-   if we got a percentage above/below 50% respectively
- *The only exception to the above is that white bulbs support a "maximum brightness" command, so we send that when we get 100%
- *Implemented warmer/cooler for white lamps in a similar way to brightnes, except this time above/below 180 degrees on the colour wheel
- *I welcome feedback on a better way to work the brightness/hue for white and rgb bulbs
-
-Troubleshooting:
-The node-milight-promise library provides additional debugging output when the MILIGHT_DEBUG environmental variable is set
-
-TODO:
- *Possibly build in some sort of state logging and persistance so that we can answswer HomeKit status queries to the best of our ability
-
+MiLight Homebridge Plugin
+By Sam Edwards (dotsam)
 */
 
 var Milight = require('node-milight-promise').MilightController;
