@@ -4,6 +4,10 @@
   "description": "MiLight/LimitlessLED/Easybulb Plugin for Homebridge: https://github.com/nfarina/homebridge",
   "author": "Sam Edwards <sam@samedwards.ca> (https://samedwards.ca/)",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/dotsam/homebridge-milight.git"
+  },  
   "preferGlobal": true,
   "bugs": {
     "url": "http://github.com/dotsam/homebridge-milight/issues"
