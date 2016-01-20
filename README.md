@@ -47,7 +47,7 @@ Where the parameters are:
    * port: Port of the WiFi bridge (optional - default 8899)
    * type: One of either "rgbw", "rgb", or "white", depending on the type of bulb being controlled. This applies to all zones (optional - default "rgbw")
    * delay: Delay in ms between commands sent over UDP. May cause heavy command queuing when set too high. Try decreasing to improve preformance (optional - default 30)
-   * repeat: Number of times to repeat the UDP command for better reliability. for rgb or white bulbs, this should be set to 1 so as not to change brightness/temperature more than desired (optional - default 3)
+   * repeat: Number of times to repeat the UDP command for better reliability. For rgb or white bulbs, this should be set to 1 so as not to change brightness/temperature more than desired (optional - default 3)
    * zones: An array of the names of the zones, in order, 1-4. Use `null` if a zone is skipped. RGB lamps can only have a single zone. (required)
 
 # Tips and Tricks
@@ -61,6 +61,9 @@ Where the parameters are:
 The node-milight-promise library provides additional debugging output when the MILIGHT_DEBUG environmental variable is set
 
 # Changelog
+
+### 0.1.1
+ * Fix bug where a MiLight controller object was created for each lamp, thus breaking the repeat and delay logic of the node-milight-promise library.
 
 ### 0.1.0
  * Refactor to better coding practices
