@@ -81,12 +81,20 @@ MiLightPlatform.prototype._addLamps = function(bridgeConfig) {
     zonesLength = 4;
   }
 
+  // Initialize a new controller to be used for all zones defined for this bridge
+  bridgeController = new Milight({
+    ip: bridgeConfig["ip_address"],
+    port: bridgeConfig["port"],
+    delayBetweenCommands: bridgeConfig["delay"],
+    commandRepeat: bridgeConfig["repeat"]
+  });
+
   // Create lamp accessories for all of the defined zones
   for (var i = 0; i < zonesLength; i++) {
     if ( !! bridgeConfig.zones[i]) {
       bridgeConfig["name"] = bridgeConfig.zones[i];
       bridgeConfig["zone"] = i + 1;
-      lamp = new MiLightAccessory(this.log, bridgeConfig);
+      lamp = new MiLightAccessory(this.log, bridgeConfig, bridgeController);
       zones.push(lamp);
     }
   }
@@ -94,7 +102,7 @@ MiLightPlatform.prototype._addLamps = function(bridgeConfig) {
   return zones;
 }
 
-function MiLightAccessory(log, lampConfig) {
+function MiLightAccessory(log, lampConfig, lampController) {
   this.log = log;
 
   // config info
@@ -102,12 +110,8 @@ function MiLightAccessory(log, lampConfig) {
   this.zone = lampConfig["zone"];
   this.type = lampConfig["type"];
 
-  this.light = new Milight({
-    ip: lampConfig["ip_address"],
-    port: lampConfig["port"],
-    delayBetweenCommands: lampConfig["delay"],
-    commandRepeat: lampConfig["repeat"]
-  });
+  // assign to the bridge
+  this.light = lampController;
 
 }
 
@@ -145,7 +149,7 @@ MiLightAccessory.prototype.setBrightness = function(level, callback) {
     // If this is an rgbw lamp, set the absolute brightness specified
     if (this.type == "rgbw") {
       // Compress down the scale to account for setting night mode at brightness 1-5%
-      this.light.sendCommands(commands.rgbw.brightness(level-4));
+      this.light.sendCommands(commands.rgbw.brightness(level - 4));
     } else {
       // If this is an rgb or a white lamp, they only support brightness up and down.
       // Set brightness up when value is >50 and down otherwise. Not sure how well this works real-world.
@@ -220,10 +224,10 @@ MiLightAccessory.prototype.getServices = function() {
   this.lightbulbService
     .addCharacteristic(new Characteristic.Brightness())
     .on('set', this.setBrightness.bind(this));
-    
+
   this.lightbulbService
     .addCharacteristic(new Characteristic.Saturation())
-    .on('set', this.setSaturation.bind(this));    
+    .on('set', this.setSaturation.bind(this));
 
   this.lightbulbService
     .addCharacteristic(new Characteristic.Hue())
