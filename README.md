@@ -62,6 +62,9 @@ The node-milight-promise library provides additional debugging output when the M
 
 # Changelog
 
+### 0.1.2
+ * Properly handle all cases where we might be setting the bulb to white
+
 ### 0.1.1
  * Fix bug where a MiLight controller object was created for each lamp, thus breaking the repeat and delay logic of the node-milight-promise library.
 
