@@ -62,6 +62,10 @@ The node-milight-promise library provides additional debugging output when the M
 
 # Changelog
 
+### 0.1.3
+ * Further enhancements to setting white/colour correctly
+ * Now uses setCharacteristic before brightness/hue/saturation instead of a direct sendCommand. This way, HomeKit knows we've turned the bulb on and keeps status in sync better.
+
 ### 0.1.2
  * Properly handle all cases where we might be setting the bulb to white
 

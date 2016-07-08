@@ -141,10 +141,10 @@ MiLightAccessory.prototype.setBrightness = function(level, callback) {
     this.light.sendCommands(commands[this.type].nightMode(this.zone));
 
   } else {
-    this.log("[" + this.name + "] Setting brightness to %s", level);
-
     // Send on command to ensure we're addressing the right bulb
-    this.light.sendCommands(commands[this.type].on(this.zone));
+    this.lightbulbService.setCharacteristic(Characteristic.On, 1);
+
+    this.log("[" + this.name + "] Setting brightness to %s", level);
 
     // If this is an rgbw lamp, set the absolute brightness specified
     if (this.type == "rgbw") {
@@ -169,16 +169,16 @@ MiLightAccessory.prototype.setBrightness = function(level, callback) {
 }
 
 MiLightAccessory.prototype.setHue = function(value, callback) {
+  // Send on command to ensure we're addressing the right bulb
+  this.lightbulbService.setCharacteristic(Characteristic.On, 1);
+
   this.log("[" + this.name + "] Setting hue to %s", value);
 
   var hue = Array(value, 0, 0);
 
-  // Send on command to ensure we're addressing the right bulb
-  this.light.sendCommands(commands[this.type].on(this.zone));
-
   if (this.type == "rgbw") {
-    if (value == 0 && this.lightbulbService.getCharacteristic(Characteristic.Saturation).value == 0) {
-      this.log("[" + this.name + "] Hue set to 0 when saturation also set to 0, setting bulb to white");
+    if (this.lightbulbService.getCharacteristic(Characteristic.Saturation).value == 0) {
+      this.log("[" + this.name + "] Saturation is 0, making sure bulb is in white mode");
       this.light.sendCommands(commands.rgbw.whiteMode(this.zone));
     } else {
       this.light.sendCommands(commands.rgbw.hue(commands.rgbw.hsvToMilightColor(hue)));
@@ -198,15 +198,20 @@ MiLightAccessory.prototype.setHue = function(value, callback) {
 
 MiLightAccessory.prototype.setSaturation = function(value, callback) {
   if (this.type == "rgbw") {
-    if (value == 0 && this.lightbulbService.getCharacteristic(Characteristic.Hue).value == 0) {
-      this.log("[" + this.name + "] Saturation set to 0, setting to white mode");
+    // Send on command to ensure we're addressing the right bulb
+    this.lightbulbService.setCharacteristic(Characteristic.On, 1);
+
+    if (value == 0) {
+      this.log("[" + this.name + "] Saturation set to 0, setting bulb to white");
       this.light.sendCommands(commands.rgbw.whiteMode(this.zone));
-    } else if (this.lightbulbService.getCharacteristic(Characteristic.Hue).value != 0) {
+    } else if (this.lightbulbService.getCharacteristic(Characteristic.Hue).value == 0) {
       this.log("[" + this.name + "] Saturation set to %s, but hue is not 0, resetting hue", value);
       this.light.sendCommands(commands.rgbw.hue(commands.rgbw.hsvToMilightColor(Array(this.lightbulbService.getCharacteristic(Characteristic.Hue).value, 0, 0))));
+    } else {
+      this.log("[" + this.name + "] Setting saturation to %s (NOTE: No impact on %s %s bulbs)", value, this.type, this.log.prefix);
     }
   } else {
-    this.log("[" + this.name + "] Setting saturation to %s (NOTE: No impact on %s bulbs)", value, this.log.prefix);
+    this.log("[" + this.name + "] Setting saturation to %s (NOTE: No impact on %s %s bulbs)", value, this.type, this.log.prefix);
   }
   callback(null);
 }
