@@ -22,12 +22,11 @@ MiLightPlatform.prototype.accessories = function (callback) {
 
   if (this.config.bridges) {
     if (this.config.zones) {
-      this.log("WARNING: Bridges and Zones keys detected in config. Only using bridges config.");
+      this.log.warn("Bridges and Zones keys detected in config. Only using bridges config.");
     }
 
     if (this.config.bridges.length === 0) {
-      this.log("ERROR: No bridges found in configuration.");
-      return;
+      throw new Error("No bridges found in configuration.");
     } else {
       for (var i = 0; i < this.config.bridges.length; i++) {
         if ( !this.config.bridges[i]) {
@@ -38,18 +37,16 @@ MiLightPlatform.prototype.accessories = function (callback) {
     }
 
   } else if (this.config.zones) {
-    this.log("DEPRECATED: See README for details of setting zones in new bridges key.");
+    this.log.warn("DEPRECATED: See README for details of setting zones in new bridges key.");
     foundZones = this._addLamps(this.config);
   } else {
-    this.log("ERROR: Could not read any zones/bridges from configuration.");
-    return;
+    throw new Error("Could not read any zones/bridges from configuration.");
   }
 
   if (foundZones.length > 0) {
     callback(foundZones);
   } else {
-    this.log("ERROR: Unable to find any valid zones.");
-    return;
+    throw new Error("Unable to find any valid zones.");
   }
 
 };
@@ -62,8 +59,7 @@ MiLightPlatform.prototype._addLamps = function (bridgeConfig) {
   if (bridgeConfig.zones) {
     zonesLength = bridgeConfig.zones.length;
   } else {
-    this.log("ERROR: Could not read zones from configuration.");
-    return;
+    throw new Error("Could not read zones from configuration.");
   }
 
   if (!bridgeConfig.type) {
@@ -72,8 +68,7 @@ MiLightPlatform.prototype._addLamps = function (bridgeConfig) {
   }
 
   if (zonesLength === 0) {
-    this.log("ERROR: No zones found in configuration.");
-    return;
+    throw new Error("No zones found in configuration.");
   } else if (bridgeConfig.type == "rgb" && zonesLength > 1) {
     this.log("WARNING: RGB lamps only have a single zone. Only the first defined zone will be used.");
     zonesLength = 1;
