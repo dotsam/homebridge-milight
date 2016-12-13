@@ -145,14 +145,14 @@ MiLightAccessory.prototype.setBrightness = function (level, callback) {
     // If this is an rgbw lamp, set the absolute brightness specified
     if (this.type == "rgbw") {
       // Compress down the scale to account for setting night mode at brightness 1-5%
-      this.light.sendCommands(commands.rgbw.brightness(level - 4));
+      this.light.sendCommands(commands[this.type].brightness(level - 4));
     } else {
       // If this is an rgb or a white lamp, they only support brightness up and down.
       // Set brightness up when value is >50 and down otherwise. Not sure how well this works real-world.
       if (level >= 50) {
         if (this.type == "white" && level == 100) {
           // But the white lamps do have a "maximum brightness" command
-          this.light.sendCommands(commands.white.maxBright(this.zone));
+          this.light.sendCommands(commands[this.type].maxBright(this.zone));
         } else {
           this.light.sendCommands(commands[this.type].brightUp());
         }
@@ -175,18 +175,18 @@ MiLightAccessory.prototype.setHue = function (value, callback) {
   if (this.type == "rgbw") {
     if (this.lightbulbService.getCharacteristic(Characteristic.Saturation).value === 0) {
       this.log("[" + this.name + "] Saturation is 0, making sure bulb is in white mode");
-      this.light.sendCommands(commands.rgbw.whiteMode(this.zone));
+      this.light.sendCommands(commands[this.type].whiteMode(this.zone));
     } else {
-      this.light.sendCommands(commands.rgbw.hue(commands.rgbw.hsvToMilightColor(hue)));
+      this.light.sendCommands(commands[this.type].hue(commands[this.type].hsvToMilightColor(hue)));
     }
   } else if (this.type == "rgb") {
-    this.light.sendCommands(commands.rgb.hue(commands.rgbw.hsvToMilightColor(hue)));
+    this.light.sendCommands(commands[this.type].hue(commands[this.type].hsvToMilightColor(hue)));
   } else if (this.type == "white") {
     // Again, white lamps don't support setting an absolue colour temp, so trying to do warmer/cooler step at a time based on colour
     if (value >= 180) {
-      this.light.sendCommands(commands.white.cooler());
+      this.light.sendCommands(commands[this.type].cooler());
     } else {
-      this.light.sendCommands(commands.white.warmer());
+      this.light.sendCommands(commands[this.type].warmer());
     }
   }
   callback(null);
@@ -199,10 +199,10 @@ MiLightAccessory.prototype.setSaturation = function (value, callback) {
 
     if (value === 0) {
       this.log("[" + this.name + "] Saturation set to 0, setting bulb to white");
-      this.light.sendCommands(commands.rgbw.whiteMode(this.zone));
+      this.light.sendCommands(commands[this.type].whiteMode(this.zone));
     } else if (this.lightbulbService.getCharacteristic(Characteristic.Hue).value === 0) {
       this.log("[" + this.name + "] Saturation set to %s, but hue is not 0, resetting hue", value);
-      this.light.sendCommands(commands.rgbw.hue(commands.rgbw.hsvToMilightColor(Array(this.lightbulbService.getCharacteristic(Characteristic.Hue).value, 0, 0))));
+      this.light.sendCommands(commands[this.type].hue(commands[this.type].hsvToMilightColor(Array(this.lightbulbService.getCharacteristic(Characteristic.Hue).value, 0, 0))));
     } else {
       this.log("[" + this.name + "] Setting saturation to %s (NOTE: No impact on %s %s bulbs)", value, this.type, this.log.prefix);
     }
