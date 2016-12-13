@@ -126,7 +126,7 @@ MiLightAccessory.prototype.setBrightness = function (level, callback) {
   if (level === 0) {
     // If brightness is set to 0, turn off the lamp
     this.log("[" + this.name + "] Setting brightness to 0 (off)");
-    this.light.sendCommands(commands[this.type].off(this.zone));
+    this.lightbulbService.setCharacteristic(Characteristic.On, false);
   } else if (level <= 5 && (this.type == "rgbw" || this.type == "white")) {
     // If setting brightness to 5 or lower, instead set night mode for lamps that support it
     this.log("[" + this.name + "] Setting night mode");
@@ -166,7 +166,7 @@ MiLightAccessory.prototype.setBrightness = function (level, callback) {
 
 MiLightAccessory.prototype.setHue = function (value, callback) {
   // Send on command to ensure we're addressing the right bulb
-  this.lightbulbService.setCharacteristic(Characteristic.On, 1);
+  this.lightbulbService.setCharacteristic(Characteristic.On, true);
 
   this.log("[" + this.name + "] Setting hue to %s", value);
 
@@ -195,7 +195,7 @@ MiLightAccessory.prototype.setHue = function (value, callback) {
 MiLightAccessory.prototype.setSaturation = function (value, callback) {
   if (this.type == "rgbw") {
     // Send on command to ensure we're addressing the right bulb
-    this.lightbulbService.setCharacteristic(Characteristic.On, 1);
+    this.lightbulbService.setCharacteristic(Characteristic.On, true);
 
     if (value === 0) {
       this.log("[" + this.name + "] Saturation set to 0, setting bulb to white");
