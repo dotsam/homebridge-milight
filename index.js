@@ -26,12 +26,12 @@ MiLightPlatform.prototype.accessories = function (callback) {
     }
 
     if (this.config.bridges.length === 0) {
-      throw new Error("No bridges found in configuration.");
+      this.log.error("No bridges found in configuration.");
     } else {
       for (var i = 0; i < this.config.bridges.length; i++) {
-        if ( !this.config.bridges[i]) {
+        if (this.config.bridges[i]) {
           var returnedZones = this._addLamps(this.config.bridges[i]);
-          foundZones.push.apply(foundZones, returnedZones);
+          Array.prototype.push.apply(foundZones, returnedZones);
         }
       }
     }
@@ -40,40 +40,40 @@ MiLightPlatform.prototype.accessories = function (callback) {
     this.log.warn("DEPRECATED: See README for details of setting zones in new bridges key.");
     foundZones = this._addLamps(this.config);
   } else {
-    throw new Error("Could not read any zones/bridges from configuration.");
+    this.log.error("Could not read any zones/bridges from configuration.");
   }
 
   if (foundZones.length > 0) {
     callback(foundZones);
   } else {
-    throw new Error("Unable to find any valid zones.");
+    this.log.error("Unable to find any valid zones.");
   }
 
 };
 
 MiLightPlatform.prototype._addLamps = function (bridgeConfig) {
   var zones = [];
-  var zonesLength;
+  var zonesLength = 0;
 
   // Various error checking
   if (bridgeConfig.zones) {
     zonesLength = bridgeConfig.zones.length;
   } else {
-    throw new Error("Could not read zones from configuration.");
+    this.log.error("Could not read zones from configuration.");
   }
 
   if (!bridgeConfig.type) {
-    this.log("INFO: Type not specified, defaulting to rgbw");
+    this.log.warning("Type not specified, defaulting to rgbw");
     bridgeConfig.type = "rgbw";
   }
 
   if (zonesLength === 0) {
-    throw new Error("No zones found in configuration.");
+    this.log.error("No zones found in configuration.");
   } else if (bridgeConfig.type == "rgb" && zonesLength > 1) {
-    this.log("WARNING: RGB lamps only have a single zone. Only the first defined zone will be used.");
+    this.log.warning("RGB lamps only have a single zone. Only the first defined zone will be used.");
     zonesLength = 1;
   } else if (zonesLength > 4) {
-    this.log("WARNING: Only a maximum of 4 zones are supported per bridge. Only recognizing the first 4 zones.");
+    this.log.warning("Only a maximum of 4 zones are supported per bridge. Only recognizing the first 4 zones.");
     zonesLength = 4;
   }
 
@@ -87,7 +87,7 @@ MiLightPlatform.prototype._addLamps = function (bridgeConfig) {
 
   // Create lamp accessories for all of the defined zones
   for (var i = 0; i < zonesLength; i++) {
-    if ( !bridgeConfig.zones[i]) {
+    if (bridgeConfig.zones[i]) {
       bridgeConfig.name = bridgeConfig.zones[i];
       bridgeConfig.zone = i + 1;
       var lamp = new MiLightAccessory(this.log, bridgeConfig, bridgeController);
@@ -105,6 +105,10 @@ function MiLightAccessory(log, lampConfig, lampController) {
   this.name = lampConfig.name;
   this.zone = lampConfig.zone;
   this.type = lampConfig.type;
+  
+  // have to keep track of the last values we set brightness and colour temp to for rgb/white bulbs
+  this.brightness = -1;
+  this.ct = -1;
 
   // assign to the bridge
   this.light = lampController;
@@ -146,18 +150,39 @@ MiLightAccessory.prototype.setBrightness = function (level, callback) {
     if (this.type == "rgbw") {
       // Compress down the scale to account for setting night mode at brightness 1-5%
       this.light.sendCommands(commands[this.type].brightness(level - 4));
-    } else {
+    } else {      
       // If this is an rgb or a white lamp, they only support brightness up and down.
-      // Set brightness up when value is >50 and down otherwise. Not sure how well this works real-world.
-      if (level >= 50) {
-        if (this.type == "white" && level == 100) {
-          // But the white lamps do have a "maximum brightness" command
-          this.light.sendCommands(commands[this.type].maxBright(this.zone));
-        } else {
-          this.light.sendCommands(commands[this.type].brightUp());
-        }
+      if (this.type == "white" && level == 100) {
+        // But the white lamps do have a "maximum brightness" command
+        this.light.sendCommands(commands[this.type].maxBright(this.zone));
+        this.brightness = 100;
       } else {
-        this.light.sendCommands(commands[this.type].brightDown());
+        // We're going to send the number of brightness up or down commands required to get to get from
+        // the current value that HomeKit knows to the target value
+        
+        // Keeping track of the value separately from Homebridge so we know when to change across multiple small adjustments
+        if (this.brightness === -1) this.brightness = this.lightbulbService.getCharacteristic(Characteristic.Brightness).value;
+        var currentLevel = this.brightness;
+        
+        var targetLevel = level - currentLevel;
+        var targetDirection = Math.sign(targetLevel);
+        targetLevel = Math.max(0,(Math.round(Math.abs(targetLevel)/10))); // There are 10 steps of brightness
+          
+        if (targetDirection === 0 || targetDirection === -0 || targetLevel === 0) {
+          this.log("[" + this.name + "] Change not large enough to move to next step for bulb");
+        } else {
+          this.brightness = level;
+          
+          for (; targetLevel !== 0; targetLevel--) {
+            if (targetDirection === 1) {
+              this.light.sendCommands(commands[this.type].brightUp());
+              this.log.debug("[" + this.name + "] Sending brightness up command");
+            } else if (targetDirection === -1) {
+              this.light.sendCommands(commands[this.type].brightDown());
+              this.log.debug("[" + this.name + "] Sending brightness down command");
+            }
+          }
+        }
       }
     }
   }
@@ -170,7 +195,7 @@ MiLightAccessory.prototype.setHue = function (value, callback) {
 
   this.log("[" + this.name + "] Setting hue to %s", value);
 
-  var hue = Array(value, 0, 0);
+  var hue = [value, 0, 0];
 
   if (this.type == "rgbw") {
     if (this.lightbulbService.getCharacteristic(Characteristic.Saturation).value === 0) {
@@ -182,11 +207,30 @@ MiLightAccessory.prototype.setHue = function (value, callback) {
   } else if (this.type == "rgb") {
     this.light.sendCommands(commands[this.type].hue(commands[this.type].hsvToMilightColor(hue)));
   } else if (this.type == "white") {
-    // Again, white lamps don't support setting an absolue colour temp, so trying to do warmer/cooler step at a time based on colour
-    if (value >= 180) {
-      this.light.sendCommands(commands[this.type].cooler());
+    // Again, white lamps don't support setting an absolue colour temp, so we'll do some math to figure out how to get there
+    
+    // Keeping track of the value separately from Homebridge so we know when to change across multiple small adjustments
+    if (this.ct === -1) this.ct = this.lightbulbService.getCharacteristic(Characteristic.Hue).value;
+    var currentLevel = this.ct;
+    
+    var targetLevel = value - currentLevel;
+    var targetDirection = Math.sign(targetLevel);
+    targetLevel = Math.max(0,(Math.round(Math.abs(targetLevel)/36))); // There are 10 steps of colour temp (360/10)
+      
+    if (targetDirection === 0 || targetDirection === -0 || targetLevel === 0) {
+      this.log("[" + this.name + "] Change not large enough to move to next step for bulb");
     } else {
-      this.light.sendCommands(commands[this.type].warmer());
+      this.ct = value;
+      
+      for (; targetLevel !== 0; targetLevel--) {
+        if (targetDirection === 1) {
+          this.light.sendCommands(commands[this.type].cooler());
+          this.log.debug("[" + this.name + "] Sending bulb cooler command");
+        } else if (targetDirection === -1) {
+          this.light.sendCommands(commands[this.type].warmer());
+          this.log.debug("[" + this.name + "] Sending bulb warmer command");
+        }
+      }
     }
   }
   callback(null);
@@ -201,13 +245,13 @@ MiLightAccessory.prototype.setSaturation = function (value, callback) {
       this.log("[" + this.name + "] Saturation set to 0, setting bulb to white");
       this.light.sendCommands(commands[this.type].whiteMode(this.zone));
     } else if (this.lightbulbService.getCharacteristic(Characteristic.Hue).value === 0) {
-      this.log("[" + this.name + "] Saturation set to %s, but hue is not 0, resetting hue", value);
-      this.light.sendCommands(commands[this.type].hue(commands[this.type].hsvToMilightColor(Array(this.lightbulbService.getCharacteristic(Characteristic.Hue).value, 0, 0))));
+      this.log.info("[" + this.name + "] Saturation set to %s, but hue is not 0, resetting hue", value);
+      this.light.sendCommands(commands[this.type].hue(commands[this.type].hsvToMilightColor([this.lightbulbService.getCharacteristic(Characteristic.Hue).value, 0, 0])));
     } else {
-      this.log("[" + this.name + "] Setting saturation to %s (NOTE: No impact on %s %s bulbs)", value, this.type, this.log.prefix);
+      this.log.info("[" + this.name + "] Setting saturation to %s (NOTE: No impact on %s %s bulbs)", value, this.type, this.log.prefix);
     }
   } else {
-    this.log("[" + this.name + "] Setting saturation to %s (NOTE: No impact on %s %s bulbs)", value, this.type, this.log.prefix);
+    this.log.info("[" + this.name + "] Setting saturation to %s (NOTE: No impact on %s %s bulbs)", value, this.type, this.log.prefix);
   }
   callback(null);
 };
