@@ -238,13 +238,16 @@ MiLightAccessory.prototype.setHue = function (value, callback) {
 
 MiLightAccessory.prototype.setSaturation = function (value, callback) {
   if (this.type == "rgbw") {
-    // Send on command to ensure we're addressing the right bulb
-    this.lightbulbService.setCharacteristic(Characteristic.On, true);
-
     if (value === 0) {
+      // Send on command to ensure we're addressing the right bulb
+      this.lightbulbService.setCharacteristic(Characteristic.On, true);
+      
       this.log("[" + this.name + "] Saturation set to 0, setting bulb to white");
       this.light.sendCommands(commands[this.type].whiteMode(this.zone));
     } else if (this.lightbulbService.getCharacteristic(Characteristic.Hue).value === 0) {
+      // Send on command to ensure we're addressing the right bulb
+      this.lightbulbService.setCharacteristic(Characteristic.On, true);
+      
       this.log.info("[" + this.name + "] Saturation set to %s, but hue is not 0, resetting hue", value);
       this.light.sendCommands(commands[this.type].hue(commands[this.type].hsvToMilightColor([this.lightbulbService.getCharacteristic(Characteristic.Hue).value, 0, 0])));
     } else {
