@@ -119,12 +119,8 @@ MiLightAccessory.prototype.setPowerState = function (powerOn, callback) {
   if (powerOn) {
     this.log("[" + this.name + "] Setting power state to on");
     this.light.sendCommands(commands[this.type].on(this.zone));
-    // Hack for now to send on/off twice for reliability
-    this.light.sendCommands(commands[this.type].on(this.zone));    
   } else {
     this.log("[" + this.name + "] Setting power state to off");
-    this.light.sendCommands(commands[this.type].off(this.zone));
-    // Hack for now to send on/off twice for reliability
     this.light.sendCommands(commands[this.type].off(this.zone));
   }
   callback(null);
@@ -146,7 +142,7 @@ MiLightAccessory.prototype.setBrightness = function (level, callback) {
 
   } else {
     // Send on command to ensure we're addressing the right bulb
-    this.lightbulbService.setCharacteristic(Characteristic.On, true);
+    this.lightbulbService.setCharacteristic(Characteristic.On, 1);
 
     this.log("[" + this.name + "] Setting brightness to %s", level);
 
