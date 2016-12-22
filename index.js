@@ -1,5 +1,5 @@
 var Milight = require("node-milight-promise").MilightController;
-var commands = require("node-milight-promise").commands;
+var commands;
 
 "use strict";
 
@@ -62,8 +62,8 @@ MiLightPlatform.prototype._addLamps = function (bridgeConfig) {
     this.log.error("Could not read zones from configuration.");
   }
 
-  if (!bridgeConfig.type) {
-    this.log.warning("Type not specified, defaulting to rgbw");
+  if (!bridgeConfig.type || ['fullColor', 'rgbw', 'rgb', 'white'].indexOf(bridgeConfig.type) === -1) {
+    this.log.warning("Type not specified or invalid type, defaulting to rgbw");
     bridgeConfig.type = "rgbw";
   }
 
@@ -76,13 +76,28 @@ MiLightPlatform.prototype._addLamps = function (bridgeConfig) {
     this.log.warning("Only a maximum of 4 zones are supported per bridge. Only recognizing the first 4 zones.");
     zonesLength = 4;
   }
+  
+  if (!bridgeConfig.hasOwnProperty('version')) {
+    bridgeConfig.version = "v5";
+  }
+  
+  if (bridgeConfig.version !== "v6" && bridgeConfig.type == "fullColor") {
+    this.log.error("Full colour bulbs only avaliable with v6 bridge!");
+  }
+  
+  if (bridgeConfig.version == "v6") {
+    commands = require("node-milight-promise").commandsV6;
+  } else {
+    commands = require("node-milight-promise").commands;
+  }
 
   // Initialize a new controller to be used for all zones defined for this bridge
   var bridgeController = new Milight({
     ip: bridgeConfig.ip_address,
     port: bridgeConfig.port,
     delayBetweenCommands: bridgeConfig.delay,
-    commandRepeat: bridgeConfig.repeat
+    commandRepeat: bridgeConfig.repeat,
+    type: bridgeConfig.version
   });
 
   // Create lamp accessories for all of the defined zones
@@ -105,6 +120,7 @@ function MiLightAccessory(log, lampConfig, lampController) {
   this.name = lampConfig.name;
   this.zone = lampConfig.zone;
   this.type = lampConfig.type;
+  this.version = lampConfig.version;
   
   // have to keep track of the last values we set brightness and colour temp to for rgb/white bulbs
   this.brightness = -1;
@@ -148,8 +164,13 @@ MiLightAccessory.prototype.setBrightness = function (level, callback) {
 
     // If this is an rgbw lamp, set the absolute brightness specified
     if (this.type == "rgbw") {
-      // Compress down the scale to account for setting night mode at brightness 1-5%
-      this.light.sendCommands(commands[this.type].brightness(level - 4));
+      if (this.version == "v6") {
+        this.light.sendCommands(commands[this.type].brightness(this.zone, level));
+      } else {
+        this.light.sendCommands(commands[this.type].brightness(level));
+      }
+    } else if (this.type == "fullColor") {
+      this.light.sendCommands(commands[this.type].brightness(this.zone, level));
     } else {      
       // If this is an rgb or a white lamp, they only support brightness up and down.
       if (this.type == "white" && level == 100) {
@@ -175,10 +196,10 @@ MiLightAccessory.prototype.setBrightness = function (level, callback) {
           
           for (; targetLevel !== 0; targetLevel--) {
             if (targetDirection === 1) {
-              this.light.sendCommands(commands[this.type].brightUp());
+              this.light.sendCommands(commands[this.type].brightUp(this.zone));
               this.log.debug("[" + this.name + "] Sending brightness up command");
             } else if (targetDirection === -1) {
-              this.light.sendCommands(commands[this.type].brightDown());
+              this.light.sendCommands(commands[this.type].brightDown(this.zone));
               this.log.debug("[" + this.name + "] Sending brightness down command");
             }
           }
@@ -204,6 +225,13 @@ MiLightAccessory.prototype.setHue = function (value, callback) {
     } else {
       this.light.sendCommands(commands[this.type].hue(commands[this.type].hsvToMilightColor(hue)));
     }
+  } else if (this.type == "fullColor") {
+    if (this.lightbulbService.getCharacteristic(Characteristic.Saturation).value === 0) {
+      this.log("[" + this.name + "] Saturation is 0, making sure bulb is in white mode");
+      this.light.sendCommands(commands[this.type].whiteMode(this.zone));
+    } else {
+      this.light.sendCommands(commands[this.type].hue(this.zone, commands.rgbw.hsvToMilightColor(hue)));
+    }
   } else if (this.type == "rgb") {
     this.light.sendCommands(commands[this.type].hue(commands[this.type].hsvToMilightColor(hue)));
   } else if (this.type == "white") {
@@ -224,10 +252,10 @@ MiLightAccessory.prototype.setHue = function (value, callback) {
       
       for (; targetLevel !== 0; targetLevel--) {
         if (targetDirection === 1) {
-          this.light.sendCommands(commands[this.type].cooler());
+          this.light.sendCommands(commands[this.type].cooler(this.zone));
           this.log.debug("[" + this.name + "] Sending bulb cooler command");
         } else if (targetDirection === -1) {
-          this.light.sendCommands(commands[this.type].warmer());
+          this.light.sendCommands(commands[this.type].warmer(this.zone));
           this.log.debug("[" + this.name + "] Sending bulb warmer command");
         }
       }
@@ -253,6 +281,13 @@ MiLightAccessory.prototype.setSaturation = function (value, callback) {
     } else {
       this.log.info("[" + this.name + "] Setting saturation to %s (NOTE: No impact on %s %s bulbs)", value, this.type, this.log.prefix);
     }
+  } else if (this.type == "fullColor"){
+    // Send on command to ensure we're addressing the right bulb
+    this.lightbulbService.setCharacteristic(Characteristic.On, true);
+    
+    this.log("[" + this.name + "] Setting saturation to %s", value);
+    this.light.sendCommands(commands[this.type].saturation(this.zone, value));
+    
   } else {
     this.log.info("[" + this.name + "] Setting saturation to %s (NOTE: No impact on %s %s bulbs)", value, this.type, this.log.prefix);
   }

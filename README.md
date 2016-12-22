@@ -23,7 +23,8 @@ Example config:
             "bridges": [
               {
                 "ip_address": "10.0.1.25",
-                "type": "rgbw",
+                "type": "fullColor",
+                "version": "v6",
                 "zones": [null,"Kitchen","Bedroom","Hallway"],
                 "repeat": 5,
                 "delay": 30
@@ -45,7 +46,8 @@ Where the parameters are:
  * bridges: An array of the bridges that will be configured by the platform, containing the following keys
    * ip_address: The IP address of the WiFi Bridge (optional - default: 255.255.255.255 aka briadcast to all bridges)
    * port: Port of the WiFi bridge (optional - default 8899)
-   * type: One of either "rgbw", "rgb", or "white", depending on the type of bulb being controlled. This applies to all zones (optional - default "rgbw")
+   * type: One of either "fullColor", "rgbw", "rgb", or "white", depending on the type of bulb being controlled. This applies to all zones (optional - default "rgbw")
+   * version: What version of the bridge this is. Currently only differs between "v6" and anything else (optional - default "v5")
    * delay: Delay in ms between commands sent over UDP. May cause heavy command queuing when set too high. Try decreasing to improve preformance (optional - default 30)
    * repeat: Number of times to repeat the UDP command for better reliability. For rgb or white bulbs, this should be set to 1 so as not to change brightness/temperature more than desired (optional - default 3)
    * zones: An array of the names of the zones, in order, 1-4. Use `null` if a zone is skipped. RGB lamps can only have a single zone. (required)
@@ -53,14 +55,17 @@ Where the parameters are:
 # Tips and Tricks
  * Setting the brightness of an rgbw or a white bulb to between 1% and 5% will set it to "night mode", which is dimmer than the normal lowest brightness setting
  * A brighness setting of 0% is equivilant to sending an Off command
- * White and rgb bulbs don't support absolute brightness setting, so we just send a brightness up/brightness down command depending if we got a percentage above/below 50% respectively
- * The only exception to the above is that white bulbs support a "maximum brightness" command, so we send that when we get 100%
- * Implemented warmer/cooler for white lamps in a similar way to brightnes, except this time above/below 180 degrees on the colour wheel
+ * White and rgb bulbs don't support absolute brightness setting, so we keep track of the last brightness value set and send the appropriate number of up/down commands to get to the new value
+ * Implemented warmer/cooler for white lamps in the same way as brightness
 
 # Troubleshooting
 The node-milight-promise library provides additional debugging output when the MILIGHT_DEBUG environmental variable is set
 
 # Changelog
+
+### 0.1.5
+ * Initial support for v6 bridge and full colour bulbs, as implemented by node-milight-promise
+ * Completely untested on any actual hardware
 
 ### 0.1.4
  * Code cleanup
