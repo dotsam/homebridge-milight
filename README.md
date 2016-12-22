@@ -62,6 +62,10 @@ The node-milight-promise library provides additional debugging output when the M
 
 # Changelog
 
+### 0.1.4
+ * Code cleanup
+ * Track brightness/colour temp of non-rgbw bulbs and send the appropriate number of up/down commands. Will need to control bulbs exclusively with this plugin for this to work, and will also need to get all bulbs to a known state (I suggest turning on all lights and setting them to full brightness).
+
 ### 0.1.3
  * Further enhancements to setting white/colour correctly
  * Now uses setCharacteristic before brightness/hue/saturation instead of a direct sendCommand. This way, HomeKit knows we've turned the bulb on and keeps status in sync better.
