@@ -152,7 +152,7 @@ MiLightAccessory.prototype.setBrightness = function (level, callback) {
     // If brightness is set to 0, turn off the lamp
     this.log("[" + this.name + "] Setting brightness to 0 (off)");
     this.lightbulbService.setCharacteristic(Characteristic.On, false);
-  } else if (level <= 5 && (this.type === "rgbw" || this.type === "white")) {
+  } else if (level <= 5 && (this.type === "rgbw" || this.type === "white" || this.type === "fullColor")) {
     // If setting brightness to 5 or lower, instead set night mode for lamps that support it
     this.log("[" + this.name + "] Setting night mode");
 
@@ -168,14 +168,12 @@ MiLightAccessory.prototype.setBrightness = function (level, callback) {
     this.log("[" + this.name + "] Setting brightness to %s", level);
 
     // If this is an rgbw lamp, set the absolute brightness specified
-    if (this.type === "rgbw") {
+    if (this.type === "rgbw" || this.type === "fullColor") {
       if (this.version === "v6") {
         this.light.sendCommands(this.commands[this.type].brightness(this.zone, level));
       } else {
         this.light.sendCommands(this.commands[this.type].brightness(level));
       }
-    } else if (this.type === "fullColor") {
-      this.light.sendCommands(this.commands[this.type].brightness(this.zone, level));
     } else {      
       // If this is an rgb or a white lamp, they only support brightness up and down.
       if (this.type === "white" && level === 100) {
@@ -223,7 +221,7 @@ MiLightAccessory.prototype.setHue = function (value, callback) {
 
   var hue = [value, 0, 0];
 
-  if (this.type === "rgbw") {
+  if (this.type === "rgbw" || this.type === "fullColor") {
     if (this.lightbulbService.getCharacteristic(Characteristic.Saturation).value === 0) {
       this.log("[" + this.name + "] Saturation is 0, making sure bulb is in white mode");
       this.light.sendCommands(this.commands[this.type].whiteMode(this.zone));
@@ -233,13 +231,6 @@ MiLightAccessory.prototype.setHue = function (value, callback) {
       } else {
         this.light.sendCommands(this.commands[this.type].hue(helper.hsvToMilightColor(hue)));
       }
-    }
-  } else if (this.type === "fullColor") {
-    if (this.lightbulbService.getCharacteristic(Characteristic.Saturation).value === 0) {
-      this.log("[" + this.name + "] Saturation is 0, making sure bulb is in white mode");
-      this.light.sendCommands(this.commands[this.type].whiteMode(this.zone));
-    } else {
-      this.light.sendCommands(this.commands[this.type].hue(this.zone, helper.hsvToMilightColor(hue), true));
     }
   } else if (this.type === "rgb") {
     if (this.version === "v6") {
