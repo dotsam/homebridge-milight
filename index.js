@@ -78,7 +78,7 @@ MiLightPlatform.prototype._addLamps = function (bridgeConfig) {
   }
   
   if (!bridgeConfig.hasOwnProperty('version')) {
-    bridgeConfig.version = "v3";
+    bridgeConfig.version = "v2";
   }
   
   if (bridgeConfig.version !== "v6" && bridgeConfig.type === "fullColor") {
@@ -87,7 +87,7 @@ MiLightPlatform.prototype._addLamps = function (bridgeConfig) {
   
   if (bridgeConfig.version === "v6") {
     bridgeConfig.commands = require("node-milight-promise").commandsV6;
-  } else if (bridgeConfig.version === "v5") {
+  } else if (bridgeConfig.version === "v3") {
     bridgeConfig.commands = require("node-milight-promise").commands2;
   } else {
     bridgeConfig.commands = require("node-milight-promise").commands;

@@ -47,7 +47,7 @@ Where the parameters are:
    * ip_address: The IP address of the WiFi Bridge (optional - default: 255.255.255.255 aka briadcast to all bridges)
    * port: Port of the WiFi bridge (optional - default 8899)
    * type: One of either "fullColor", "rgbw", "rgb", or "white", depending on the type of bulb being controlled. This applies to all zones (optional - default "rgbw")
-   * version: What version of the bridge this is. Currently only differs between "v6" and anything else (optional - default "v5")
+   * version: What version of the bridge this is. Set "v6" for latest bridge, "v3" for 2-byte UDP messages, or "v2" for 3-byte UDP messages  (optional - default "v2")
    * delay: Delay in ms between commands sent over UDP. May cause heavy command queuing when set too high. Try decreasing to improve preformance (optional - default 30)
    * repeat: Number of times to repeat the UDP command for better reliability. For rgb or white bulbs, this should be set to 1 so as not to change brightness/temperature more than desired (optional - default 3)
    * zones: An array of the names of the zones, in order, 1-4. Use `null` if a zone is skipped. RGB lamps can only have a single zone. (required)
@@ -64,8 +64,8 @@ The node-milight-promise library provides additional debugging output when the M
 # Changelog
 
 ### 0.1.5
- * Initial support for v6 bridge and full colour bulbs, as implemented by node-milight-promise
- * Completely untested on any actual hardware
+ * Support for v6 bridge and full colour bulbs
+ * Fixes switching between white and colour modes
 
 ### 0.1.4
  * Code cleanup
