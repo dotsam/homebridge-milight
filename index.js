@@ -126,7 +126,7 @@ function MiLightAccessory(log, lampConfig, lampController) {
   
   // have to keep track of the last values we set brightness and colour temp to for rgb/white bulbs
   this.brightness = -1;
-  this.ct = -1;
+  this.hue = -1;
 
   // assign to the bridge
   this.light = lampController;
@@ -222,10 +222,12 @@ MiLightAccessory.prototype.setHue = function (value, callback) {
   var hue = [value, 0, 0];
 
   if (this.type === "rgbw" || this.type === "fullColor") {
-    if (this.lightbulbService.getCharacteristic(Characteristic.Saturation).value === 0) {
+    if (this.lightbulbService.getCharacteristic(Characteristic.Saturation).value === 0 && this.hue !== -1) {
       this.log("[" + this.name + "] Saturation is 0, making sure bulb is in white mode");
       this.light.sendCommands(this.commands[this.type].whiteMode(this.zone));
     } else {
+      this.hue = value;
+      
       if (this.version === "v6") {
         this.light.sendCommands(this.commands[this.type].hue(this.zone, helper.hsvToMilightColor(hue), true));
       } else {
@@ -242,8 +244,8 @@ MiLightAccessory.prototype.setHue = function (value, callback) {
     // Again, white lamps don't support setting an absolue colour temp, so we'll do some math to figure out how to get there
     
     // Keeping track of the value separately from Homebridge so we know when to change across multiple small adjustments
-    if (this.ct === -1) this.ct = this.lightbulbService.getCharacteristic(Characteristic.Hue).value;
-    var currentLevel = this.ct;
+    if (this.hue === -1) this.hue = this.lightbulbService.getCharacteristic(Characteristic.Hue).value;
+    var currentLevel = this.hue;
     
     var targetLevel = value - currentLevel;
     var targetDirection = Math.sign(targetLevel);
@@ -252,7 +254,7 @@ MiLightAccessory.prototype.setHue = function (value, callback) {
     if (targetDirection === 0 || targetDirection === -0 || targetLevel === 0) {
       this.log("[" + this.name + "] Change not large enough to move to next step for bulb");
     } else {
-      this.ct = value;
+      this.hue = value;
       
       for (; targetLevel !== 0; targetLevel--) {
         if (targetDirection === 1) {
@@ -276,7 +278,7 @@ MiLightAccessory.prototype.setSaturation = function (value, callback) {
       
       this.log("[" + this.name + "] Saturation set to 0, setting bulb to white");
       this.light.sendCommands(this.commands[this.type].whiteMode(this.zone));
-    } else if (this.lightbulbService.getCharacteristic(Characteristic.Hue).value === 0) {
+    } else if (this.lightbulbService.getCharacteristic(Characteristic.Hue).value !== 0) {
       // Send on command to ensure we're addressing the right bulb
       this.lightbulbService.setCharacteristic(Characteristic.On, true);
       
