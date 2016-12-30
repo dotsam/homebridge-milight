@@ -229,14 +229,14 @@ MiLightAccessory.prototype.setHue = function (value, callback) {
       this.hue = value;
       
       if (this.version === "v6") {
-        this.light.sendCommands(this.commands[this.type].hue(this.zone, helper.hsvToMilightColor(hue), true));
+        this.light.sendCommands(this.commands[this.type].hue(this.zone, helper.hsvToMilightColor(hue), false));
       } else {
         this.light.sendCommands(this.commands[this.type].hue(helper.hsvToMilightColor(hue)));
       }
     }
   } else if (this.type === "rgb") {
     if (this.version === "v6") {
-      this.light.sendCommands(this.commands[this.type].hue(this.zone, helper.hsvToMilightColor(hue), true));
+      this.light.sendCommands(this.commands[this.type].hue(this.zone, helper.hsvToMilightColor(hue), false));
     } else {
       this.light.sendCommands(this.commands[this.type].hue(helper.hsvToMilightColor(hue)));
     }
