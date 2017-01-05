@@ -64,8 +64,8 @@ The node-milight-promise library provides additional debugging output when the M
 # Changelog
 
 ### 0.1.5
- * Support for v6 bridge and full colour bulbs
- * Fixes switching between white and colour modes
+ * Initial support for v6 bridge and full colour bulbs. This is a work in progress, please check for/open Githib issues for any problems encountered.
+ * Better switching between white and colour modes
 
 ### 0.1.4
  * Code cleanup
