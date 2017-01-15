@@ -52,7 +52,7 @@ Where the parameters are:
    * lights: An object whose properties are one of "fullColor", "rgbw", "rgb", or "white", depending on the type of bulb, and whose value is an array of the names of the zones, in order, 1-4. Use `null` if a zone is skipped. RGB lamps can only have a single zone. (required)
 
 #Bridge Versions
-The `version` referred to in the config above matches the versioning used by limitlessled.com. They refer to the "v6" bridge as the bridge released in late 2016. One version of this bridge has a built-in LED that is not yet supported by this plugin. This bridge is referred to elsewhere as bridge "3.0", but should still be configured in this plugin as "v6".
+The `version` referred to in the config above matches the versioning used by limitlessled.com. They refer to the "v6" bridge as the bridge released in late 2016. One version of this bridge has a built-in LED that is not yet supported by this plugin. This bridge is referred to elsewhere as bridge "3.0" or "iBox 2", but should still be configured in this plugin as "v6".
 
 This plugin previously used 3-byte UDP commands as the default, which the "v1" and "v2" bridges required, but "versions" 3-5 all supported a shorter 2-byte sequence which some users may see better results with. This command set also uses an expanded brightness range for RGBW bulbs, which hasn't been confirmed to actually make any difference.
 
