@@ -1,6 +1,6 @@
 {
   "name": "homebridge-milight",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "MiLight/LimitlessLED/Easybulb Plugin for Homebridge: https://github.com/nfarina/homebridge",
   "author": "Sam Edwards <sam@samedwards.ca> (https://samedwards.ca/)",
   "license": "MIT",
