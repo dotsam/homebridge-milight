@@ -308,7 +308,7 @@ MiLightAccessory.prototype.setSaturation = function (value, callback) {
       this.lightbulbService.setCharacteristic(Characteristic.On, true);
 
       this.log.info("[" + this.name + "] Saturation set to %s, but hue is not 0, resetting hue", value);
-      this.light.sendCommands(this.commands[this.type].hue(helper.hsvToMilightColor([this.lightbulbService.getCharacteristic(Characteristic.Hue).value, 0, 0])));
+      this.lightbulbService.setCharacteristic(Characteristic.Hue, this.lightbulbService.getCharacteristic(Characteristic.Hue).value);
     } else {
       this.log.info("[" + this.name + "] Setting saturation to %s (NOTE: No impact on %s %s bulbs)", value, this.type, this.log.prefix);
     }
