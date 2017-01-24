@@ -69,6 +69,9 @@ The node-milight-promise library provides additional debugging output when the M
 
 # Changelog
 
+### 0.1.7
+ * Fix bug setting hue correctly on v6 bridges
+
 ### 0.1.6
  * New config format where the `bridges` key actually defines one bridge now, with a `lights` key that defines a type of light and then name of the bulbs. Still backwards compatible with the old format, and actually still backwards compatible with an even older config version that only supported one bridge per platform definition. Both of these older configuration formats will be removed in 1.0.0.
  * We were doing things Wrong© before by creating multiple MiLight bridge objects for one physical bridge when we were using multiple bulb types on that bridge. With the new config, we now only create one bridge per device and send the appropriate commands for the bulb type. This should now actually queue commands properly as intended, and may fix issues with the v6 bridge.
