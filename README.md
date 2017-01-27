@@ -69,6 +69,9 @@ The node-milight-promise library provides additional debugging output when the M
 
 # Changelog
 
+### 0.1.8
+ * Fixes destined for 0.1.7 were never actually pushed.
+
 ### 0.1.7
  * Fix bug setting hue correctly on v6 bridges
 
