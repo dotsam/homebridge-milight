@@ -88,10 +88,10 @@ MiLightPlatform.prototype._addLamps = function (bridgeConfig) {
     if (Object.keys(bridgeConfig.lights).length > 0) {
 
       for (var lightType in bridgeConfig.lights) {
-        if (["fullColor", "rgbw", "rgb", "white"].indexOf(lightType) === -1) {
+        if (["fullColor", "rgbw", "rgb", "white", "bridge"].indexOf(lightType) === -1) {
           this.log.error("Invalid light type specified.");
-        } else if (bridgeConfig.version !== "v6" && lightType === "fullColor") {
-          this.log.error("Full colour bulbs only avaliable with v6 bridge!");
+        } else if (bridgeConfig.version !== "v6" && (lightType === "fullColor" || lightType === "bridge")) {
+          this.log.error("%s bulb type only avaliable with v6 bridge!", lightType);
         } else {
           var zonesLength = bridgeConfig.lights[lightType].length;
 
@@ -102,7 +102,7 @@ MiLightPlatform.prototype._addLamps = function (bridgeConfig) {
             this.log.warn("RGB lamps only have a single zone. Only the first defined zone will be used.");
             zonesLength = 1;
           } else if (zonesLength > 4) {
-            this.log.warn("Only a maximum of 4 zones are supported per bridge. Only recognizing the first 4 zones.");
+            this.log.warn("Only a maximum of 4 zones per bulb type are supported per bridge. Only recognizing the first 4 zones.");
             zonesLength = 4;
           }
 
@@ -177,7 +177,7 @@ MiLightAccessory.prototype.setBrightness = function (level, callback) {
     // If brightness is set to 0, turn off the lamp
     this.log("[" + this.name + "] Setting brightness to 0 (off)");
     this.lightbulbService.setCharacteristic(Characteristic.On, false);
-  } else if (level <= 5 && (this.type === "rgbw" || this.type === "white" || this.type === "fullColor")) {
+  } else if (level <= 5 && (this.type === "rgbw" || this.type === "white" || this.type === "fullColor" || this.type === "bridge")) {
     // If setting brightness to 5 or lower, instead set night mode for lamps that support it
     this.log("[" + this.name + "] Setting night mode");
 
@@ -193,7 +193,7 @@ MiLightAccessory.prototype.setBrightness = function (level, callback) {
     this.log("[" + this.name + "] Setting brightness to %s", level);
 
     // If this is an rgbw lamp, set the absolute brightness specified
-    if (this.type === "rgbw" || this.type === "fullColor") {
+    if (this.type === "rgbw" || this.type === "fullColor" || this.type === "bridge") {
       if (this.version === "v6") {
         this.light.sendCommands(this.commands[this.type].brightness(this.zone, level));
       } else {
@@ -244,10 +244,10 @@ MiLightAccessory.prototype.setHue = function (value, callback) {
 
   this.log("[" + this.name + "] Setting hue to %s", value);
 
-  if ((this.type === "rgbw" || this.type === "fullColor") && this.lightbulbService.getCharacteristic(Characteristic.Saturation).value === 0 && this.hue !== -1) {
+  if ((this.type === "rgbw" || this.type === "fullColor" || this.type === "bridge") && this.lightbulbService.getCharacteristic(Characteristic.Saturation).value === 0 && this.hue !== -1) {
     this.log("[" + this.name + "] Saturation is 0, making sure bulb is in white mode");
     this.light.sendCommands(this.commands[this.type].whiteMode(this.zone));
-  } else if (this.type === "rgbw" || this.type === "rgb" || this.type === "fullColor") {
+  } else if (this.type === "rgbw" || this.type === "rgb" || this.type === "fullColor" || this.type === "bridge") {
     this.hue = value;
 
     if (this.version === "v6") {
