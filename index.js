@@ -18,146 +18,115 @@ function MiLightPlatform(log, config) {
 }
 
 MiLightPlatform.prototype.accessories = function (callback) {
-  var foundZones = [];
+  var foundBulbs = [];
 
-  if (this.config.bridges) {
-    if (this.config.zones) {
-      this.log.warn("Bridges and Zones keys detected in config. Only using bridges config.");
+  if (this.config.bridges.length > 0) {
+    for (var bridge in this.config.bridges) {
+      var returnedBulbs = this._parseBridge(this.config.bridges[bridge]);
+      Array.prototype.push.apply(foundBulbs, returnedBulbs);
     }
-
-    if (this.config.bridges.length === 0) {
-      this.log.error("No bridges found in configuration.");
-    } else {
-      for (var bridge in this.config.bridges) {
-        var returnedZones = this._addLamps(this.config.bridges[bridge]);
-        Array.prototype.push.apply(foundZones, returnedZones);
-      }
-    }
-
-  } else if (this.config.zones) {
-    this.log.warn("DEPRECATED: See README for details of setting multiple lights in new bridges key.");
-    foundZones = this._addLamps(this.config);
-  } else {
-    this.log.error("Could not read any zones/bridges from configuration.");
   }
 
-  if (foundZones.length > 0) {
-    callback(foundZones);
+  if (foundBulbs.length > 0) {
+    callback(foundBulbs);
   } else {
-    this.log.error("Unable to find any valid lights.");
+    this.log.error("No valid bulbs found in any bridge.");
   }
 
 };
 
-MiLightPlatform.prototype._addLamps = function (bridgeConfig) {
-  var zones = [];
+MiLightPlatform.prototype._parseBridge = function (bridgeConfig) {
+  var bulbs = [];
   var bridgeController;
 
-  // Setting appropriate commands per bridge version. Defaults to v2 as those are the commands that previous versions of the plugin used
-  if (!bridgeConfig.version) {
-    bridgeConfig.version = "v2";
-  }
+  if (Object.keys(bridgeConfig.lights).length > 0) {
 
-  if (bridgeConfig.version === "v6") {
-    bridgeConfig.commands = require("node-milight-promise").commandsV6;
-  } else if (bridgeConfig.version === "v3") {
-    bridgeConfig.commands = require("node-milight-promise").commands2;
-  } else {
-    bridgeConfig.commands = require("node-milight-promise").commands;
-  }
-
-  if (!bridgeConfig.zones && !bridgeConfig.lights) {
-    this.log.error("No lights or zones defined for this bridge. Check your configuration.");
-  } else {
-    if (bridgeConfig.lights) {
-      if (bridgeConfig.zones) {
-        this.log.warn("Zones and Lights keys both detected for bridge. Using only Lights key.");
-      }
-    } else if (bridgeConfig.zones) {
-      this.log.warn("DEPRECATED: See README for details of setting multiple light types per bridge key.");
-
-      if (!bridgeConfig.type) {
-        this.log.warn("Type not specified, defaulting to rgbw");
-        bridgeConfig.type = "rgbw";
-      }
-
-      bridgeConfig.lights = {};
-      bridgeConfig.lights[bridgeConfig.type] =  bridgeConfig.zones;
+    // Setting appropriate commands per bridge version. Defaults to v2 as those are the commands that previous versions of the plugin used
+    if (!bridgeConfig.version) {
+      bridgeConfig.version = "v2";
     }
 
-    if (Object.keys(bridgeConfig.lights).length > 0) {
+    for (var lightType in bridgeConfig.lights) {
+      if (["fullColor", "rgbw", "rgb", "white", "bridge"].indexOf(lightType) === -1) {
+        this.log.error("Invalid light type specified.");
+      } else if (bridgeConfig.version !== "v6" && (lightType === "fullColor" || lightType === "bridge")) {
+        this.log.error("%s bulb type only avaliable with v6 bridge!", lightType);
+      } else {
+        var zonesLength = bridgeConfig.lights[lightType].length;
 
-      for (var lightType in bridgeConfig.lights) {
-        if (["fullColor", "rgbw", "rgb", "white", "bridge"].indexOf(lightType) === -1) {
-          this.log.error("Invalid light type specified.");
-        } else if (bridgeConfig.version !== "v6" && (lightType === "fullColor" || lightType === "bridge")) {
-          this.log.error("%s bulb type only avaliable with v6 bridge!", lightType);
-        } else {
-          var zonesLength = bridgeConfig.lights[lightType].length;
+        if (zonesLength < 1) {
+          this.log.error("No zones found in configuration.");
+          zonesLength = 0;
+        } else if ((lightType === "rgb" || lightType === "bridge")  && zonesLength > 1) {
+          this.log.warn("RGB/Bridge bulbs only have a single zone. Only the first defined zone will be used.");
+          zonesLength = 1;
+        } else if (zonesLength > 4) {
+          this.log.warn("Only a maximum of 4 zones per bulb type are supported per bridge. Only recognizing the first 4 zones.");
+          zonesLength = 4;
+        }
 
-          if (zonesLength < 1) {
-            this.log.error("No zones found in configuration.");
-            zonesLength = 0;
-          } else if ((lightType === "rgb" || lightType === "bridge")  && zonesLength > 1) {
-            this.log.warn("RGB/Bridge lamps only have a single zone. Only the first defined zone will be used.");
-            zonesLength = 1;
-          } else if (zonesLength > 4) {
-            this.log.warn("Only a maximum of 4 zones per bulb type are supported per bridge. Only recognizing the first 4 zones.");
-            zonesLength = 4;
+        if (zonesLength > 0) {
+          // If it hasn't been already, initialize a new controller to be used for all zones defined for this bridge
+          if (typeof(bridgeController) != "object") {
+            bridgeController = new Milight({
+              ip: bridgeConfig.ip_address,
+              port: bridgeConfig.port,
+              delayBetweenCommands: bridgeConfig.delay,
+              commandRepeat: bridgeConfig.repeat,
+              type: bridgeConfig.version
+            });
           }
 
-          if (zonesLength > 0) {
-            // If it hasn't been already, initialize a new controller to be used for all zones defined for this bridge
-            if (typeof(bridgeController) != "object") {
-              bridgeController = new Milight({
-                ip: bridgeConfig.ip_address,
-                port: bridgeConfig.port,
-                delayBetweenCommands: bridgeConfig.delay,
-                commandRepeat: bridgeConfig.repeat,
-                type: bridgeConfig.version
-              });
+          if (typeof(bridgeController.commands) != "object") {
+            if (bridgeConfig.version === "v6") {
+              bridgeController.commands = require("node-milight-promise").commandsV6;
+            } else if (bridgeConfig.version === "v3") {
+              bridgeController.commands = require("node-milight-promise").commands2;
+            } else {
+              bridgeController.commands = require("node-milight-promise").commands;
             }
+          }
 
-            // Create lamp accessories for all of the defined zones
-            for (var i = 0; i < zonesLength; i++) {
-              if (bridgeConfig.name = bridgeConfig.lights[lightType][i]) {
-                bridgeConfig.type = lightType;
-                bridgeConfig.zone = i + 1;
-                var lamp = new MiLightAccessory(this.log, bridgeConfig, bridgeController);
-                zones.push(lamp);
-              } else if (bridgeConfig.lights[lightType][i] !== null) {
-                this.log.error("Unable to add light.");
-              }
+          // Create bulb accessories for all of the defined zones
+          for (var i = 0; i < zonesLength; i++) {
+            var bulbConfig = {};
+            if (bulbConfig.name = bridgeConfig.lights[lightType][i]) {
+              bulbConfig.type = lightType;
+              bulbConfig.zone = i + 1;
+              var bulb = new MiLightAccessory(bulbConfig, bridgeController, this.log);
+              bulbs.push(bulb);
+            } else if (bridgeConfig.lights[lightType][i] !== null) {
+              this.log.error("Unable to add light.");
             }
           }
         }
       }
-     } else {
-      this.log.error("Could not read any zones/lights from configuration.");
     }
+   } else {
+    this.log.error("Could not read any lights from bridge.");
   }
 
-  return zones;
+  return bulbs;
 };
 
-function MiLightAccessory(log, lampConfig, lampController) {
+function MiLightAccessory(bulbConfig, bridgeController, log) {
   this.log = log;
 
   // config info
-  this.name = lampConfig.name;
-  this.zone = lampConfig.zone;
-  this.type = lampConfig.type;
-  this.version = lampConfig.version;
+  this.name = bulbConfig.name;
+  this.zone = bulbConfig.zone;
+  this.type = bulbConfig.type;
+  this.version = bulbConfig.version;
 
   // have to keep track of the last values we set brightness and colour temp to for rgb/white bulbs
   this.brightness = -1;
   this.hue = -1;
 
   // assign to the bridge
-  this.light = lampController;
+  this.light = bridgeController;
 
   // use the right commands for this bridge
-  this.commands = lampConfig.commands;
+  this.commands = this.light.commands;
 
 }
 
@@ -174,11 +143,11 @@ MiLightAccessory.prototype.setPowerState = function (powerOn, callback) {
 
 MiLightAccessory.prototype.setBrightness = function (level, callback) {
   if (level === 0) {
-    // If brightness is set to 0, turn off the lamp
+    // If brightness is set to 0, turn off the bulb
     this.log("[" + this.name + "] Setting brightness to 0 (off)");
     this.lightbulbService.setCharacteristic(Characteristic.On, false);
   } else if (level <= 5 && (this.type === "rgbw" || this.type === "white" || this.type === "fullColor" || this.type === "bridge")) {
-    // If setting brightness to 5 or lower, instead set night mode for lamps that support it
+    // If setting brightness to 5 or lower, instead set night mode for bulbs that support it
     this.log("[" + this.name + "] Setting night mode");
 
     this.light.sendCommands(this.commands[this.type].off(this.zone));
@@ -192,7 +161,7 @@ MiLightAccessory.prototype.setBrightness = function (level, callback) {
 
     this.log("[" + this.name + "] Setting brightness to %s", level);
 
-    // If this is an rgbw lamp, set the absolute brightness specified
+    // If this is an rgbw bulb, set the absolute brightness specified
     if (this.type === "rgbw" || this.type === "fullColor" || this.type === "bridge") {
       if (this.version === "v6" && this.type !== "bridge") {
         this.light.sendCommands(this.commands[this.type].brightness(this.zone, level));
@@ -200,9 +169,9 @@ MiLightAccessory.prototype.setBrightness = function (level, callback) {
         this.light.sendCommands(this.commands[this.type].brightness(level));
       }
     } else {
-      // If this is an rgb or a white lamp, they only support brightness up and down.
+      // If this is an rgb or a white bulb, they only support brightness up and down.
       if (this.type === "white" && level === 100) {
-        // But the white lamps do have a "maximum brightness" command
+        // But the white bulbs do have a "maximum brightness" command
         this.light.sendCommands(this.commands[this.type].maxBright(this.zone));
         this.brightness = 100;
       } else {
@@ -256,7 +225,7 @@ MiLightAccessory.prototype.setHue = function (value, callback, context) {
       this.light.sendCommands(this.commands[this.type].hue(helper.hsvToMilightColor([value, 0, 0]),true));
     }
   } else if (this.type === "white") {
-    // Again, white lamps don't support setting an absolue colour temp, so we'll do some math to figure out how to get there
+    // Again, white bulbs don't support setting an absolue colour temp, so we'll do some math to figure out how to get there
 
     // Keeping track of the value separately from Homebridge so we know when to change across multiple small adjustments
     if (this.hue === -1) this.hue = this.lightbulbService.getCharacteristic(Characteristic.Hue).value;
