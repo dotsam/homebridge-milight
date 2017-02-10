@@ -194,7 +194,7 @@ MiLightAccessory.prototype.setBrightness = function (level, callback) {
 
     // If this is an rgbw lamp, set the absolute brightness specified
     if (this.type === "rgbw" || this.type === "fullColor" || this.type === "bridge") {
-      if (this.version === "v6") {
+      if (this.version === "v6" && this.type !== "bridge") {
         this.light.sendCommands(this.commands[this.type].brightness(this.zone, level));
       } else {
         this.light.sendCommands(this.commands[this.type].brightness(level));
@@ -250,10 +250,10 @@ MiLightAccessory.prototype.setHue = function (value, callback, context) {
   } else if (this.type === "rgbw" || this.type === "rgb" || this.type === "fullColor" || this.type === "bridge") {
     this.hue = value;
 
-    if (this.version === "v6") {
+    if (this.version === "v6" && this.type !== "bridge") {
       this.light.sendCommands(this.commands[this.type].hue(this.zone, helper.hsvToMilightColor([value, 0, 0]), true));
     } else {
-      this.light.sendCommands(this.commands[this.type].hue(helper.hsvToMilightColor([value, 0, 0])));
+      this.light.sendCommands(this.commands[this.type].hue(helper.hsvToMilightColor([value, 0, 0]),true));
     }
   } else if (this.type === "white") {
     // Again, white lamps don't support setting an absolue colour temp, so we'll do some math to figure out how to get there
