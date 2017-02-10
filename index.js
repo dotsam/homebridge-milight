@@ -238,13 +238,13 @@ MiLightAccessory.prototype.setBrightness = function (level, callback) {
   callback(null);
 };
 
-MiLightAccessory.prototype.setHue = function (value, callback) {
+MiLightAccessory.prototype.setHue = function (value, callback, context) {
   // Send on command to ensure we're addressing the right bulb
   this.lightbulbService.setCharacteristic(Characteristic.On, true);
 
   this.log("[" + this.name + "] Setting hue to %s", value);
 
-  if ((this.type === "rgbw" || this.type === "fullColor" || this.type === "bridge") && this.lightbulbService.getCharacteristic(Characteristic.Saturation).value === 0 && this.hue !== -1) {
+  if ((this.type === "rgbw" || this.type === "fullColor" || this.type === "bridge") && this.lightbulbService.getCharacteristic(Characteristic.Saturation).value === 0 && this.hue !== -1 && context !== 'internal') {
     this.log("[" + this.name + "] Saturation is 0, making sure bulb is in white mode");
     this.light.sendCommands(this.commands[this.type].whiteMode(this.zone));
   } else if (this.type === "rgbw" || this.type === "rgb" || this.type === "fullColor" || this.type === "bridge") {
@@ -296,7 +296,7 @@ MiLightAccessory.prototype.setSaturation = function (value, callback) {
     } else if (this.lightbulbService.getCharacteristic(Characteristic.Hue).value !== 0) {
       // We can get these commands out-of-order, so set the hue again just to be sure
       this.log.info("[" + this.name + "] Saturation set to %s, but hue is not 0, resetting hue", value);
-      this.lightbulbService.setCharacteristic(Characteristic.Hue, this.lightbulbService.getCharacteristic(Characteristic.Hue).value);
+      this.lightbulbService.getCharacteristic(Characteristic.Hue).setValue(this.lightbulbService.getCharacteristic(Characteristic.Hue).value, null, 'internal');
     } else {
       this.log.info("[" + this.name + "] Setting saturation to %s (NOTE: No impact on %s %s bulbs)", value, this.type, this.log.prefix);
     }
