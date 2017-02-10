@@ -98,8 +98,8 @@ MiLightPlatform.prototype._addLamps = function (bridgeConfig) {
           if (zonesLength < 1) {
             this.log.error("No zones found in configuration.");
             zonesLength = 0;
-          } else if (lightType === "rgb" && zonesLength > 1) {
-            this.log.warn("RGB lamps only have a single zone. Only the first defined zone will be used.");
+          } else if ((lightType === "rgb" || lightType === "bridge")  && zonesLength > 1) {
+            this.log.warn("RGB/Bridge lamps only have a single zone. Only the first defined zone will be used.");
             zonesLength = 1;
           } else if (zonesLength > 4) {
             this.log.warn("Only a maximum of 4 zones per bulb type are supported per bridge. Only recognizing the first 4 zones.");
