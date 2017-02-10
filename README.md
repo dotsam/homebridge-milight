@@ -49,7 +49,7 @@ Where the parameters are:
    * version: What version of the bridge this is. Set "v6" for latest bridge, "v3" for 2-byte UDP messages, or "v2" for 3-byte UDP messages  (optional - default "v2")
    * delay: Delay in ms between commands sent over UDP. May cause heavy command queuing when set too high. Try decreasing to improve performance (optional - default 100)
    * repeat: Number of times to repeat the UDP command for better reliability. For rgb or white bulbs, this should be set to 1 so as not to change brightness/temperature more than desired (optional - default 3)
-   * lights: An object whose properties are one of "fullColor", "rgbw", "rgb", or "white", depending on the type of bulb, and whose value is an array of the names of the zones, in order, 1-4. Use `null` if a zone is skipped. RGB lamps can only have a single zone. (required)
+   * lights: An object whose properties are one of "fullColor", "rgbw", "rgb", "bridge", or "white", depending on the type of bulb, and whose value is an array of the names of the zones, in order, 1-4. Use `null` if a zone is skipped. RGB lamps and the bridge light can only have a single zone. (required)
 
 #Bridge Versions
 The `version` referred to in the config above matches the versioning used by limitlessled.com. They refer to the "v6" bridge as the bridge released in late 2016. One version of this bridge has a built-in LED that is not yet supported by this plugin. This bridge is referred to elsewhere as bridge "3.0" or "iBox 2", but should still be configured in this plugin as "v6".
@@ -68,6 +68,10 @@ The node-milight-promise library provides additional debugging output when the M
 `MILIGHT_DEBUG=true homebridge -D`
 
 # Changelog
+
+### 0.1.9
+ * Finally fix the bug where colour/white mode was not set correctly when changing hue/saturation
+ * Added support for "bridge" bulb type to control the internal bulb on v6 bridges
 
 ### 0.1.8
  * Fixes destined for 0.1.7 were never actually pushed.
