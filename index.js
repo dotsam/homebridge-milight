@@ -59,9 +59,8 @@ MiLightPlatform.prototype.accessories = function (callback) {
                   commandRepeat: bridgeConfig.repeat,
                   type: bridgeConfig.version
                 });
-              }
-
-              if (typeof(bridgeControllers[bridgeConfig.ip_address].commands) != "object") {
+                
+                // Attach the right commands to the bridgeController object
                 if (bridgeConfig.version === "v6") {
                   bridgeControllers[bridgeConfig.ip_address].commands = require("node-milight-promise").commandsV6;
                 } else if (bridgeConfig.version === "v3") {
@@ -69,6 +68,8 @@ MiLightPlatform.prototype.accessories = function (callback) {
                 } else {
                   bridgeControllers[bridgeConfig.ip_address].commands = require("node-milight-promise").commands;
                 }
+                
+                bridgeControllers[bridgeConfig.ip_address].lastSent = {bulb: ''};
               }
 
               // Create bulb accessories for all of the defined zones
@@ -119,15 +120,24 @@ function MiLightAccessory(bulbConfig, bridgeController, log) {
 
   // use the right commands for this bridge
   this.commands = this.light.commands;
+  
+  // keep track of the last bulb an 'on' command was sent to
+  this.lastSent = this.light.lastSent;
 
 }
 
 MiLightAccessory.prototype.setPowerState = function (powerOn, callback) {
   if (powerOn) {
-    this.log("[" + this.name + "] Setting power state to on");
-    this.light.sendCommands(this.commands[this.type].on(this.zone));
+    if (this.lastSent.bulb === this.type + this.zone) {
+      this.log.debug("[" + this.name + "] Ommiting 'on' command as we've sent it to this bulb most recently");
+    } else {
+      this.log("[" + this.name + "] Setting power state to on");
+      this.lastSent.bulb = this.type + this.zone;
+      this.light.sendCommands(this.commands[this.type].on(this.zone));
+    }
   } else {
     this.log("[" + this.name + "] Setting power state to off");
+    this.lastSent.bulb = '';
     this.light.sendCommands(this.commands[this.type].off(this.zone));
   }
   callback(null);
