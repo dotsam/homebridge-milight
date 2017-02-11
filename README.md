@@ -69,6 +69,11 @@ The node-milight-promise library provides additional debugging output when the M
 
 # Changelog
 
+### 0.1.10
+ * Fix command sending to the bridge light
+ * Further tweaks to the logic of setting/resetting hue/saturation/white mode
+ * This is likely the last release before an upcomming 1.0 release that will remove support for old config formats. Please check the Homebridge log to see if your congiguration generates any warnings, and update your configuration as required.
+
 ### 0.1.9
  * Finally fix the bug where colour/white mode was not set correctly when changing hue/saturation
  * Added support for "bridge" bulb type to control the internal bulb on v6 bridges
