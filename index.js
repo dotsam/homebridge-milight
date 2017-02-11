@@ -69,6 +69,7 @@ MiLightPlatform.prototype.accessories = function (callback) {
                   bridgeControllers[bridgeConfig.ip_address].commands = require("node-milight-promise").commands;
                 }
                 
+                // Used to keep track of the last targeted bulb
                 bridgeControllers[bridgeConfig.ip_address].lastSent = {bulb: ''};
               }
 
@@ -148,7 +149,7 @@ MiLightAccessory.prototype.setBrightness = function (level, callback) {
     // If brightness is set to 0, turn off the bulb
     this.log("[" + this.name + "] Setting brightness to 0 (off)");
     this.lightbulbService.setCharacteristic(Characteristic.On, false);
-  } else if (level <= 5 && (this.type === "rgbw" || this.type === "white" || this.type === "fullColor" || this.type === "bridge")) {
+  } else if (level <= 5 && this.type !== "rgb") {
     // If setting brightness to 5 or lower, instead set night mode for bulbs that support it
     this.log("[" + this.name + "] Setting night mode");
 
@@ -163,8 +164,8 @@ MiLightAccessory.prototype.setBrightness = function (level, callback) {
 
     this.log("[" + this.name + "] Setting brightness to %s", level);
 
-    // If this is an rgbw bulb, set the absolute brightness specified
-    if (this.type === "rgbw" || this.type === "fullColor" || this.type === "bridge") {
+    // If bulb supports it, set the absolute brightness specified
+    if (["rgb", "white"].indexOf(this.type) === -1) {
       if (this.version === "v6" && this.type !== "bridge") {
         this.light.sendCommands(this.commands[this.type].brightness(this.zone, level));
       } else {
@@ -215,10 +216,10 @@ MiLightAccessory.prototype.setHue = function (value, callback, context) {
 
   this.log("[" + this.name + "] Setting hue to %s", value);
 
-  if ((this.type === "rgbw" || this.type === "fullColor" || this.type === "bridge") && this.lightbulbService.getCharacteristic(Characteristic.Saturation).value === 0 && this.hue !== -1 && context !== 'internal') {
+  if (["fullColor", "rgbw", "bridge"].indexOf(this.type) > -1 && this.lightbulbService.getCharacteristic(Characteristic.Saturation).value === 0 && this.hue !== -1 && context !== 'internal') {
     this.log("[" + this.name + "] Saturation is 0, making sure bulb is in white mode");
     this.light.sendCommands(this.commands[this.type].whiteMode(this.zone));
-  } else if (this.type === "rgbw" || this.type === "rgb" || this.type === "fullColor" || this.type === "bridge") {
+  } else if (this.type !== "white") {
     this.hue = value;
 
     if (this.version === "v6" && this.type !== "bridge") {
@@ -226,7 +227,7 @@ MiLightAccessory.prototype.setHue = function (value, callback, context) {
     } else {
       this.light.sendCommands(this.commands[this.type].hue(helper.hsvToMilightColor([value, 0, 0]),true));
     }
-  } else if (this.type === "white") {
+  } else {
     // Again, white bulbs don't support setting an absolue colour temp, so we'll do some math to figure out how to get there
 
     // Keeping track of the value separately from Homebridge so we know when to change across multiple small adjustments
@@ -257,7 +258,7 @@ MiLightAccessory.prototype.setHue = function (value, callback, context) {
 };
 
 MiLightAccessory.prototype.setSaturation = function (value, callback) {
-  if (this.type === "rgbw") {
+  if (["rgbw", "bridge"].indexOf(this.type) > -1) {
     if (value === 0) {
       // Send on command to ensure we're addressing the right bulb
       this.lightbulbService.setCharacteristic(Characteristic.On, true);
