@@ -293,12 +293,10 @@ MiLightAccessory.prototype.setSaturation = function (value, callback) {
 
       this.log("[" + this.name + "] Saturation set to 0, setting bulb to white");
       this.light.sendCommands(this.commands[this.type].whiteMode(this.zone));
-    } else if (this.lightbulbService.getCharacteristic(Characteristic.Hue).value !== 0) {
+    } else {
       // We can get these commands out-of-order, so set the hue again just to be sure
       this.log.info("[" + this.name + "] Saturation set to %s, but hue is not 0, resetting hue", value);
       this.lightbulbService.getCharacteristic(Characteristic.Hue).setValue(this.lightbulbService.getCharacteristic(Characteristic.Hue).value, null, 'internal');
-    } else {
-      this.log.info("[" + this.name + "] Setting saturation to %s (NOTE: No impact on %s %s bulbs)", value, this.type, this.log.prefix);
     }
   } else if (this.type === "fullColor"){
     // Send on command to ensure we're addressing the right bulb
