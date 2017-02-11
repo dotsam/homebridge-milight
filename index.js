@@ -19,94 +19,86 @@ function MiLightPlatform(log, config) {
 
 MiLightPlatform.prototype.accessories = function (callback) {
   var foundBulbs = [];
-
-  if (this.config.bridges.length > 0) {
-    for (var bridge in this.config.bridges) {
-      var returnedBulbs = this._parseBridge(this.config.bridges[bridge]);
-      Array.prototype.push.apply(foundBulbs, returnedBulbs);
-    }
-  }
-
-  if (foundBulbs.length > 0) {
-    callback(foundBulbs);
-  } else {
-    this.log.error("No valid bulbs found in any bridge.");
-  }
-
-};
-
-MiLightPlatform.prototype._parseBridge = function (bridgeConfig) {
-  var bulbs = [];
   var bridgeController;
+  
+  if (this.config.bridges.length > 0) {
+    for (var bridgeConfig of this.config.bridges) {
+      if (bridgeConfig.lights && Object.keys(bridgeConfig.lights).length > 0) {
 
-  if (Object.keys(bridgeConfig.lights).length > 0) {
-
-    // Setting appropriate commands per bridge version. Defaults to v2 as those are the commands that previous versions of the plugin used
-    if (!bridgeConfig.version) {
-      bridgeConfig.version = "v2";
-    }
-
-    for (var lightType in bridgeConfig.lights) {
-      if (["fullColor", "rgbw", "rgb", "white", "bridge"].indexOf(lightType) === -1) {
-        this.log.error("Invalid light type specified.");
-      } else if (bridgeConfig.version !== "v6" && (lightType === "fullColor" || lightType === "bridge")) {
-        this.log.error("%s bulb type only avaliable with v6 bridge!", lightType);
-      } else {
-        var zonesLength = bridgeConfig.lights[lightType].length;
-
-        if (zonesLength < 1) {
-          this.log.error("No zones found in configuration.");
-          zonesLength = 0;
-        } else if ((lightType === "rgb" || lightType === "bridge")  && zonesLength > 1) {
-          this.log.warn("RGB/Bridge bulbs only have a single zone. Only the first defined zone will be used.");
-          zonesLength = 1;
-        } else if (zonesLength > 4) {
-          this.log.warn("Only a maximum of 4 zones per bulb type are supported per bridge. Only recognizing the first 4 zones.");
-          zonesLength = 4;
+        // Setting appropriate commands per bridge version. Defaults to v2 as those are the commands that previous versions of the plugin used
+        if (!bridgeConfig.version) {
+          bridgeConfig.version = "v2";
         }
 
-        if (zonesLength > 0) {
-          // If it hasn't been already, initialize a new controller to be used for all zones defined for this bridge
-          if (typeof(bridgeController) != "object") {
-            bridgeController = new Milight({
-              ip: bridgeConfig.ip_address,
-              port: bridgeConfig.port,
-              delayBetweenCommands: bridgeConfig.delay,
-              commandRepeat: bridgeConfig.repeat,
-              type: bridgeConfig.version
-            });
-          }
+        for (var lightType in bridgeConfig.lights) {
+          if (["fullColor", "rgbw", "rgb", "white", "bridge"].indexOf(lightType) === -1) {
+            this.log.error("Invalid bulb type '%s' specified.", lightType);
+          } else if (bridgeConfig.version !== "v6" && ["fullColor", "bridge"].indexOf(lightType) > -1) {
+            this.log.error("Bulb type '%s' only avaliable with v6 bridge!", lightType);
+          } else {
+            var zonesLength = bridgeConfig.lights[lightType].length;
 
-          if (typeof(bridgeController.commands) != "object") {
-            if (bridgeConfig.version === "v6") {
-              bridgeController.commands = require("node-milight-promise").commandsV6;
-            } else if (bridgeConfig.version === "v3") {
-              bridgeController.commands = require("node-milight-promise").commands2;
-            } else {
-              bridgeController.commands = require("node-milight-promise").commands;
+            if (zonesLength < 1) {
+              this.log.error("No bulbs found in '%s' configuration.", lightType);
+              zonesLength = 0;
+            } else if (["rgb", "bridge"].indexOf(lightType) > -1  && zonesLength > 1) {
+              this.log.warn("Bulb type '%s' only supports a single zone. Only the first defined bulb will be used.", lightType);
+              zonesLength = 1;
+            } else if (zonesLength > 4) {
+              this.log.warn("Only a maximum of 4 zones per bulb type are supported per bridge. Only recognizing the first 4 zones.");
+              zonesLength = 4;
             }
-          }
 
-          // Create bulb accessories for all of the defined zones
-          for (var i = 0; i < zonesLength; i++) {
-            var bulbConfig = {};
-            if (bulbConfig.name = bridgeConfig.lights[lightType][i]) {
-              bulbConfig.type = lightType;
-              bulbConfig.zone = i + 1;
-              var bulb = new MiLightAccessory(bulbConfig, bridgeController, this.log);
-              bulbs.push(bulb);
-            } else if (bridgeConfig.lights[lightType][i] !== null) {
-              this.log.error("Unable to add light.");
+            if (zonesLength > 0) {
+              // If it hasn't been already, initialize a new controller to be used for all zones defined for this bridge
+              if (typeof(bridgeController) != "object") {
+                bridgeController = new Milight({
+                  ip: bridgeConfig.ip_address,
+                  port: bridgeConfig.port,
+                  delayBetweenCommands: bridgeConfig.delay,
+                  commandRepeat: bridgeConfig.repeat,
+                  type: bridgeConfig.version
+                });
+              }
+
+              if (typeof(bridgeController.commands) != "object") {
+                if (bridgeConfig.version === "v6") {
+                  bridgeController.commands = require("node-milight-promise").commandsV6;
+                } else if (bridgeConfig.version === "v3") {
+                  bridgeController.commands = require("node-milight-promise").commands2;
+                } else {
+                  bridgeController.commands = require("node-milight-promise").commands;
+                }
+              }
+
+              // Create bulb accessories for all of the defined zones
+              for (var i = 0; i < zonesLength; i++) {
+                var bulbConfig = {};
+                if (bulbConfig.name = bridgeConfig.lights[lightType][i]) {
+                  bulbConfig.type = lightType;
+                  bulbConfig.zone = i + 1;
+                  var bulb = new MiLightAccessory(bulbConfig, bridgeController, this.log);
+                  foundBulbs.push(bulb);
+                } else if (bridgeConfig.lights[lightType][i] !== null) {
+                  this.log.error("Unable to add light from '%s' array, index %d", lightType, i);
+                }
+              }
             }
           }
         }
+       } else {
+        this.log.error("Could not read any lights from bridge %s",bridgeConfig.ip_address);
       }
     }
-   } else {
-    this.log.error("Could not read any lights from bridge.");
+  } else {
+    this.log.error("No bridges defined.")
   }
 
-  return bulbs;
+  if (foundBulbs.length <= 0) {
+    this.log.error("No valid bulbs found in any bridge.");
+  }
+  
+  callback(foundBulbs);
 };
 
 function MiLightAccessory(bulbConfig, bridgeController, log) {
