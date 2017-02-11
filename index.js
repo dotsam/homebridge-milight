@@ -19,7 +19,7 @@ function MiLightPlatform(log, config) {
 
 MiLightPlatform.prototype.accessories = function (callback) {
   var foundBulbs = [];
-  var bridgeController;
+  var bridgeControllers = {};
   
   if (this.config.bridges.length > 0) {
     for (var bridgeConfig of this.config.bridges) {
@@ -51,8 +51,8 @@ MiLightPlatform.prototype.accessories = function (callback) {
 
             if (zonesLength > 0) {
               // If it hasn't been already, initialize a new controller to be used for all zones defined for this bridge
-              if (typeof(bridgeController) != "object") {
-                bridgeController = new Milight({
+              if (typeof(bridgeControllers[bridgeConfig.ip_address]) != "object") {
+                bridgeControllers[bridgeConfig.ip_address] = new Milight({
                   ip: bridgeConfig.ip_address,
                   port: bridgeConfig.port,
                   delayBetweenCommands: bridgeConfig.delay,
@@ -61,13 +61,13 @@ MiLightPlatform.prototype.accessories = function (callback) {
                 });
               }
 
-              if (typeof(bridgeController.commands) != "object") {
+              if (typeof(bridgeControllers[bridgeConfig.ip_address].commands) != "object") {
                 if (bridgeConfig.version === "v6") {
-                  bridgeController.commands = require("node-milight-promise").commandsV6;
+                  bridgeControllers[bridgeConfig.ip_address].commands = require("node-milight-promise").commandsV6;
                 } else if (bridgeConfig.version === "v3") {
-                  bridgeController.commands = require("node-milight-promise").commands2;
+                  bridgeControllers[bridgeConfig.ip_address].commands = require("node-milight-promise").commands2;
                 } else {
-                  bridgeController.commands = require("node-milight-promise").commands;
+                  bridgeControllers[bridgeConfig.ip_address].commands = require("node-milight-promise").commands;
                 }
               }
 
@@ -77,7 +77,7 @@ MiLightPlatform.prototype.accessories = function (callback) {
                 if (bulbConfig.name = bridgeConfig.lights[lightType][i]) {
                   bulbConfig.type = lightType;
                   bulbConfig.zone = i + 1;
-                  var bulb = new MiLightAccessory(bulbConfig, bridgeController, this.log);
+                  var bulb = new MiLightAccessory(bulbConfig, bridgeControllers[bridgeConfig.ip_address], this.log);
                   foundBulbs.push(bulb);
                 } else if (bridgeConfig.lights[lightType][i] !== null) {
                   this.log.error("Unable to add light from '%s' array, index %d", lightType, i);
