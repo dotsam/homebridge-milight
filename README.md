@@ -71,6 +71,11 @@ The node-milight-promise library provides additional debugging output when the M
 
 # Changelog
 
+### 1.0.0-beta1
+ * Removed support for legacy config formats, and cleaned up code
+ * Track the last bulb addressed by a bridge so we can skip sending the "on" command to it. Should speed things up
+ * Invert the saturation value sent to fullColor bulbs
+
 ### 0.1.10
  * Fix command sending to the bridge light
  * Further tweaks to the logic of setting/resetting hue/saturation/white mode
