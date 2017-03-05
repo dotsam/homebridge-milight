@@ -49,18 +49,20 @@ Where the parameters are:
    * version: What version of the bridge this is. Set "v6" for latest bridge, "v3" for 2-byte UDP messages, or "v2" for 3-byte UDP messages  (optional - default "v2")
    * delay: Delay in ms between commands sent over UDP. May cause heavy command queuing when set too high. Try decreasing to improve performance (optional - default 100)
    * repeat: Number of times to repeat the UDP command for better reliability. For rgb or white bulbs, this should be set to 1 so as not to change brightness/temperature more than desired (optional - default 3)
-   * lights: An object whose properties are one of "fullColor", "rgbw", "rgb", "bridge", or "white", depending on the type of bulb, and whose value is an array of the names of the zones, in order, 1-4. Use `null` if a zone is skipped. RGB lamps and the bridge light can only have a single zone. (required)
+   * lights: An object whose properties are one of "fullColor", "rgbw", "rgb", "bridge" (the built-in light in the iBox 1), or "white", depending on the type of bulb, and whose value is an array of the names of the zones, in order, 1-4. Use `null` if a zone is skipped. RGB lamps and the bridge light can only have a single zone. (required)
 
 #Bridge Versions
-The `version` referred to in the config above matches the versioning used by limitlessled.com. They refer to the "v6" bridge as the bridge released in late 2016. One version of this bridge has a built-in LED that is not yet supported by this plugin. This bridge is referred to elsewhere as bridge "3.0" or "iBox 2", but should still be configured in this plugin as "v6".
+The `version` referred to in the config above matches the versioning used by limitlessled.com. They refer to the "v6" bridge as the bridge released in late 2016. The original manufaturer, Futlight, refers to the new version of the bridge as the "iBox". The iBox1 is the version with a built-in light (configured as "bridge" bulb type), while the iBox2 is a similar design to the previous bridges. The newer bridge is also, confusingly, refered to as bridge "3.0" by some sellers. Regardless, all of the iBox/3.0 variants should be configured as version "v6".
 
 This plugin previously used 3-byte UDP commands as the default, which the "v1" and "v2" bridges required, but "versions" 3-5 all supported a shorter 2-byte sequence which some users may see better results with. This command set also uses an expanded brightness range for RGBW bulbs, which hasn't been confirmed to actually make any difference.
 
+Some of the iBox bridges have also been shipping set to only listen for TCP commands. This plugin uses only UDP commands. To make it work, you will need to log in to the web admin interface of the bridge (Username: admin, Password: admin), go to the "Other Setting" section, and change the "Network Parameter" to UDP.
+
 # Tips and Tricks
- * Setting the brightness of an rgbw or a white bulb to between 1% and 5% will set it to "night mode", which is dimmer than the normal lowest brightness setting
+ * Setting the brightness of an `rgbw`, `fullColor`, `bridge`, or `white` bulb to between 1% and 5% will set it to "night mode", which is dimmer than the normal lowest brightness setting
  * A brightness setting of 0% is equivalent to sending an Off command
- * White and rgb bulbs don't support absolute brightness setting, so we keep track of the last brightness value set and send the appropriate number of up/down commands to get to the new value
- * Implemented warmer/cooler for white lamps in the same way as brightness
+ * `white` and `rgb` bulbs don't support absolute brightness setting, so we keep track of the last brightness value set and send the appropriate number of up/down commands to get to the new value
+ * Implemented warmer/cooler for `white` lamps in the same way as brightness
  * There is only one-way communication with the bulbs, so when restarting Homebridge, it's a good idea to send a brightness and colour command to all bulbs to get them in sync, and then refrain from using any external (to Homebridge) apps to control the bulbs.
 
 # Troubleshooting
