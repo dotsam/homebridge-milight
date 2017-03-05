@@ -275,6 +275,12 @@ MiLightAccessory.prototype.setSaturation = function (value, callback) {
     this.lightbulbService.setCharacteristic(Characteristic.On, true);
 
     this.log("[" + this.name + "] Setting saturation to %s", value);
+    
+    // The fullColor bulbs look to actually invert the brightness value
+    value = value - 100;
+    value = Math.abs(value);
+    this.log.debug("[" + this.name + "] Actually sending inverse saturation value %s to fullColor bulb", value);
+    
     this.light.sendCommands(this.commands[this.type].saturation(this.zone, value));
 
   } else {
