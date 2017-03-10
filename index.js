@@ -110,7 +110,6 @@ function MiLightAccessory(bulbConfig, bridgeController, log) {
   this.name = bulbConfig.name;
   this.zone = bulbConfig.zone;
   this.type = bulbConfig.type;
-  this.version = bulbConfig.version;
 
   // have to keep track of the last values we set brightness and colour temp to for rgb/white bulbs
   this.brightness = -1;
@@ -118,6 +117,9 @@ function MiLightAccessory(bulbConfig, bridgeController, log) {
 
   // assign to the bridge
   this.light = bridgeController;
+
+  // set the version from the bridge
+  this.version = this.light.type;
 
   // use the right commands for this bridge
   this.commands = this.light.commands;
