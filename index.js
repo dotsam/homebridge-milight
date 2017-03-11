@@ -260,31 +260,30 @@ MiLightAccessory.prototype.setHue = function (value, callback, context) {
 };
 
 MiLightAccessory.prototype.setSaturation = function (value, callback) {
-  if (["rgbw", "bridge"].indexOf(this.type) > -1) {
+  if (["rgbw", "bridge", "fullColor"].indexOf(this.type) > -1) {
     if (value === 0) {
       // Send on command to ensure we're addressing the right bulb
       this.lightbulbService.setCharacteristic(Characteristic.On, true);
 
       this.log("[" + this.name + "] Saturation set to 0, setting bulb to white");
       this.light.sendCommands(this.commands[this.type].whiteMode(this.zone));
+    } else if (this.type === "fullColor"){
+      // Send on command to ensure we're addressing the right bulb
+      this.lightbulbService.setCharacteristic(Characteristic.On, true);
+
+      this.log("[" + this.name + "] Setting saturation to %s", value);
+
+      // The fullColor bulbs look to actually invert the brightness value
+      value = value - 100;
+      value = Math.abs(value);
+      this.log.debug("[" + this.name + "] Actually sending inverse saturation value %s to fullColor bulb", value);
+
+      this.light.sendCommands(this.commands[this.type].saturation(this.zone, value));
     } else {
       // We can get these commands out-of-order, so set the hue again just to be sure
       this.log.info("[" + this.name + "] Saturation set to %s, but hue is not 0, resetting hue", value);
       this.lightbulbService.getCharacteristic(Characteristic.Hue).setValue(this.lightbulbService.getCharacteristic(Characteristic.Hue).value, null, 'internal');
     }
-  } else if (this.type === "fullColor"){
-    // Send on command to ensure we're addressing the right bulb
-    this.lightbulbService.setCharacteristic(Characteristic.On, true);
-
-    this.log("[" + this.name + "] Setting saturation to %s", value);
-    
-    // The fullColor bulbs look to actually invert the brightness value
-    value = value - 100;
-    value = Math.abs(value);
-    this.log.debug("[" + this.name + "] Actually sending inverse saturation value %s to fullColor bulb", value);
-    
-    this.light.sendCommands(this.commands[this.type].saturation(this.zone, value));
-
   } else {
     this.log.info("[" + this.name + "] Setting saturation to %s (NOTE: No impact on %s %s bulbs)", value, this.type, this.log.prefix);
   }
