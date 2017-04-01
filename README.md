@@ -71,6 +71,9 @@ The node-milight-promise library provides additional debugging output when the M
 
 # Changelog
 
+### 1.0.1
+ * Upgrade node-milight-promise dependancy to ^0.1.1 and use its new saturation inversion option
+
 ### 1.0.0
  * Removed support for legacy config formats, and cleaned up code
  * Track the last bulb addressed by a bridge so we can skip sending the "on" command to it. Should speed things up a bit
