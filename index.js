@@ -5,7 +5,7 @@ var helper = require("node-milight-promise").helper;
 
 var Service, Characteristic;
 
-module.exports = function (homebridge) {
+module.exports = function(homebridge) {
   Service = homebridge.hap.Service;
   Characteristic = homebridge.hap.Characteristic;
 
@@ -17,10 +17,10 @@ function MiLightPlatform(log, config) {
   this.config = config;
 }
 
-MiLightPlatform.prototype.accessories = function (callback) {
+MiLightPlatform.prototype.accessories = function(callback) {
   var foundBulbs = [];
   var bridgeControllers = {};
-  
+
   if (this.config.bridges.length > 0) {
     for (var bridgeConfig of this.config.bridges) {
       if (bridgeConfig.lights && Object.keys(bridgeConfig.lights).length > 0) {
@@ -37,11 +37,11 @@ MiLightPlatform.prototype.accessories = function (callback) {
             this.log.error("Bulb type '%s' only avaliable with v6 bridge!", lightType);
           } else {
             var zonesLength = bridgeConfig.lights[lightType].length;
-
+            
             if (zonesLength < 1) {
               this.log.error("No bulbs found in '%s' configuration.", lightType);
               zonesLength = 0;
-            } else if (["rgb", "bridge"].indexOf(lightType) > -1  && zonesLength > 1) {
+            } else if (["rgb", "bridge"].indexOf(lightType) > -1 && zonesLength > 1) {
               this.log.warn("Bulb type '%s' only supports a single zone. Only the first defined bulb will be used.", lightType);
               zonesLength = 1;
             } else if (zonesLength > 4) {
@@ -59,7 +59,7 @@ MiLightPlatform.prototype.accessories = function (callback) {
                   commandRepeat: bridgeConfig.repeat,
                   type: bridgeConfig.version
                 });
-                
+
                 // Attach the right commands to the bridgeController object
                 if (bridgeConfig.version === "v6") {
                   bridgeControllers[bridgeConfig.ip_address].commands = require("node-milight-promise").commandsV6;
@@ -68,9 +68,9 @@ MiLightPlatform.prototype.accessories = function (callback) {
                 } else {
                   bridgeControllers[bridgeConfig.ip_address].commands = require("node-milight-promise").commands;
                 }
-                
+
                 // Used to keep track of the last targeted bulb
-                bridgeControllers[bridgeConfig.ip_address].lastSent = {bulb: ''};
+                bridgeControllers[bridgeConfig.ip_address].lastSent = { bulb: '' };
               }
 
               // Create bulb accessories for all of the defined zones
@@ -88,8 +88,8 @@ MiLightPlatform.prototype.accessories = function (callback) {
             }
           }
         }
-       } else {
-        this.log.error("Could not read any lights from bridge %s",bridgeConfig.ip_address);
+      } else {
+        this.log.error("Could not read any lights from bridge %s", bridgeConfig.ip_address);
       }
     }
   } else {
@@ -99,7 +99,7 @@ MiLightPlatform.prototype.accessories = function (callback) {
   if (foundBulbs.length <= 0) {
     this.log.error("No valid bulbs found in any bridge.");
   }
-  
+
   callback(foundBulbs);
 };
 
@@ -123,13 +123,13 @@ function MiLightAccessory(bulbConfig, bridgeController, log) {
 
   // use the right commands for this bridge
   this.commands = this.light.commands;
-  
+
   // keep track of the last bulb an 'on' command was sent to
   this.lastSent = this.light.lastSent;
 
 }
 
-MiLightAccessory.prototype.setPowerState = function (powerOn, callback) {
+MiLightAccessory.prototype.setPowerState = function(powerOn, callback) {
   if (powerOn) {
     if (this.lastSent.bulb === this.type + this.zone) {
       this.log.debug("[" + this.name + "] Ommiting 'on' command as we've sent it to this bulb most recently");
@@ -146,7 +146,7 @@ MiLightAccessory.prototype.setPowerState = function (powerOn, callback) {
   callback(null);
 };
 
-MiLightAccessory.prototype.setBrightness = function (level, callback) {
+MiLightAccessory.prototype.setBrightness = function(level, callback) {
   if (level === 0) {
     // If brightness is set to 0, turn off the bulb
     this.log("[" + this.name + "] Setting brightness to 0 (off)");
@@ -189,7 +189,7 @@ MiLightAccessory.prototype.setBrightness = function (level, callback) {
 
         var targetLevel = level - currentLevel;
         var targetDirection = Math.sign(targetLevel);
-        targetLevel = Math.max(0,(Math.round(Math.abs(targetLevel)/10))); // There are 10 steps of brightness
+        targetLevel = Math.max(0, (Math.round(Math.abs(targetLevel) / 10))); // There are 10 steps of brightness
 
         if (targetDirection === 0 || targetDirection === -0 || targetLevel === 0) {
           this.log("[" + this.name + "] Change not large enough to move to next step for bulb");
@@ -212,7 +212,7 @@ MiLightAccessory.prototype.setBrightness = function (level, callback) {
   callback(null);
 };
 
-MiLightAccessory.prototype.setHue = function (value, callback, context) {
+MiLightAccessory.prototype.setHue = function(value, callback, context) {
   // Send on command to ensure we're addressing the right bulb
   this.lightbulbService.setCharacteristic(Characteristic.On, true);
 
@@ -227,7 +227,7 @@ MiLightAccessory.prototype.setHue = function (value, callback, context) {
     if (this.version === "v6" && this.type !== "bridge") {
       this.light.sendCommands(this.commands[this.type].hue(this.zone, helper.hsvToMilightColor([value, 0, 0]), true));
     } else {
-      this.light.sendCommands(this.commands[this.type].hue(helper.hsvToMilightColor([value, 0, 0]),true));
+      this.light.sendCommands(this.commands[this.type].hue(helper.hsvToMilightColor([value, 0, 0]), true));
     }
   } else {
     // Again, white bulbs don't support setting an absolue colour temp, so we'll do some math to figure out how to get there
@@ -238,7 +238,7 @@ MiLightAccessory.prototype.setHue = function (value, callback, context) {
 
     var targetLevel = value - currentLevel;
     var targetDirection = Math.sign(targetLevel);
-    targetLevel = Math.max(0,(Math.round(Math.abs(targetLevel)/36))); // There are 10 steps of colour temp (360/10)
+    targetLevel = Math.max(0, (Math.round(Math.abs(targetLevel) / 36))); // There are 10 steps of colour temp (360/10)
 
     if (targetDirection === 0 || targetDirection === -0 || targetLevel === 0) {
       this.log("[" + this.name + "] Change not large enough to move to next step for bulb");
@@ -259,7 +259,7 @@ MiLightAccessory.prototype.setHue = function (value, callback, context) {
   callback(null);
 };
 
-MiLightAccessory.prototype.setSaturation = function (value, callback) {
+MiLightAccessory.prototype.setSaturation = function(value, callback) {
   if (["rgbw", "bridge", "fullColor"].indexOf(this.type) > -1) {
     if (value === 0) {
       // Send on command to ensure we're addressing the right bulb
@@ -267,18 +267,13 @@ MiLightAccessory.prototype.setSaturation = function (value, callback) {
 
       this.log("[" + this.name + "] Saturation set to 0, setting bulb to white");
       this.light.sendCommands(this.commands[this.type].whiteMode(this.zone));
-    } else if (this.type === "fullColor"){
+    } else if (this.type === "fullColor") {
       // Send on command to ensure we're addressing the right bulb
       this.lightbulbService.setCharacteristic(Characteristic.On, true);
 
       this.log("[" + this.name + "] Setting saturation to %s", value);
 
-      // The fullColor bulbs look to actually invert the brightness value
-      value = value - 100;
-      value = Math.abs(value);
-      this.log.debug("[" + this.name + "] Actually sending inverse saturation value %s to fullColor bulb", value);
-
-      this.light.sendCommands(this.commands[this.type].saturation(this.zone, value));
+      this.light.sendCommands(this.commands[this.type].saturation(this.zone, value, true));
     } else {
       // We can get these commands out-of-order, so set the hue again just to be sure
       this.log.info("[" + this.name + "] Saturation set to %s, but hue is not 0, resetting hue", value);
@@ -290,12 +285,12 @@ MiLightAccessory.prototype.setSaturation = function (value, callback) {
   callback(null);
 };
 
-MiLightAccessory.prototype.identify = function (callback) {
+MiLightAccessory.prototype.identify = function(callback) {
   this.log("[" + this.name + "] Identify requested!");
   callback(null); // success
 };
 
-MiLightAccessory.prototype.getServices = function () {
+MiLightAccessory.prototype.getServices = function() {
   this.informationService = new Service.AccessoryInformation();
 
   this.informationService
