@@ -306,6 +306,8 @@ MiLightAccessory.prototype.setColorTemperature = function(value, callback) {
     var targetLevel = value - currentLevel;
     var targetDirection = Math.sign(targetLevel);
 
+    this.log("[" + this.name + "] Setting color temperature to %sK", 1000000 / value);
+
     var props = this.lightbulbService.getCharacteristic(Characteristic.ColorTemperature).props;
 
     // There are only 10 steps of color temperature for white bulbs, so let's convert from megakelvin to a value from 1-10
