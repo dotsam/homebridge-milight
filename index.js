@@ -1,5 +1,6 @@
 var Milight = require("node-milight-promise").MilightController;
 var helper = require("node-milight-promise").helper;
+var inherits = require('util').inherits;
 
 "use strict";
 
@@ -8,6 +9,23 @@ var Service, Characteristic;
 module.exports = function(homebridge) {
   Service = homebridge.hap.Service;
   Characteristic = homebridge.hap.Characteristic;
+
+  // Define the standard HomeKit color temperature characteristic until it's in HAP-NodeJS
+  Characteristic.ColorTemperature = function() {
+    Characteristic.call(this, 'Color Temperature', '000000CE-0000-1000-8000-0026BB765291');
+    this.setProps({
+      format: Characteristic.Formats.UINT32,
+      unit: "mired",
+      maxValue: 370,
+      minValue: 153,
+      minStep: 1,
+      perms: [Characteristic.Perms.READ, Characteristic.Perms.WRITE, Characteristic.Perms.NOTIFY]
+    });
+    // maxValue 370 = 2700K (1000000/2700)
+    // minValue 153 = 6500K (1000000/6500)
+    this.value = this.getDefaultValue();
+  };
+  inherits(Characteristic.ColorTemperature, Characteristic);
 
   homebridge.registerPlatform("homebridge-milight", "MiLight", MiLightPlatform);
 };
@@ -37,7 +55,7 @@ MiLightPlatform.prototype.accessories = function(callback) {
             this.log.error("Bulb type '%s' only avaliable with v6 bridge!", lightType);
           } else {
             var zonesLength = bridgeConfig.lights[lightType].length;
-            
+
             if (zonesLength < 1) {
               this.log.error("No bulbs found in '%s' configuration.", lightType);
               zonesLength = 0;
@@ -70,7 +88,9 @@ MiLightPlatform.prototype.accessories = function(callback) {
                 }
 
                 // Used to keep track of the last targeted bulb
-                bridgeControllers[bridgeConfig.ip_address].lastSent = { bulb: '' };
+                bridgeControllers[bridgeConfig.ip_address].lastSent = {
+                  bulb: ''
+                };
               }
 
               // Create bulb accessories for all of the defined zones
@@ -114,6 +134,7 @@ function MiLightAccessory(bulbConfig, bridgeController, log) {
   // have to keep track of the last values we set brightness and colour temp to for rgb/white bulbs
   this.brightness = -1;
   this.hue = -1;
+  this.ct = -1;
 
   // assign to the bridge
   this.light = bridgeController;
@@ -229,32 +250,6 @@ MiLightAccessory.prototype.setHue = function(value, callback, context) {
     } else {
       this.light.sendCommands(this.commands[this.type].hue(helper.hsvToMilightColor([value, 0, 0]), true));
     }
-  } else {
-    // Again, white bulbs don't support setting an absolue colour temp, so we'll do some math to figure out how to get there
-
-    // Keeping track of the value separately from Homebridge so we know when to change across multiple small adjustments
-    if (this.hue === -1) this.hue = this.lightbulbService.getCharacteristic(Characteristic.Hue).value;
-    var currentLevel = this.hue;
-
-    var targetLevel = value - currentLevel;
-    var targetDirection = Math.sign(targetLevel);
-    targetLevel = Math.max(0, (Math.round(Math.abs(targetLevel) / 36))); // There are 10 steps of colour temp (360/10)
-
-    if (targetDirection === 0 || targetDirection === -0 || targetLevel === 0) {
-      this.log("[" + this.name + "] Change not large enough to move to next step for bulb");
-    } else {
-      this.hue = value;
-
-      for (; targetLevel !== 0; targetLevel--) {
-        if (targetDirection === 1) {
-          this.light.sendCommands(this.commands[this.type].cooler(this.zone));
-          this.log.debug("[" + this.name + "] Sending bulb cooler command");
-        } else if (targetDirection === -1) {
-          this.light.sendCommands(this.commands[this.type].warmer(this.zone));
-          this.log.debug("[" + this.name + "] Sending bulb warmer command");
-        }
-      }
-    }
   }
   callback(null);
 };
@@ -285,6 +280,56 @@ MiLightAccessory.prototype.setSaturation = function(value, callback) {
   callback(null);
 };
 
+MiLightAccessory.prototype.setColorTemperature = function(value, callback) {
+  if (this.type === "fullColor") {
+    // Send on command to ensure we're addressing the right bulb
+    this.lightbulbService.setCharacteristic(Characteristic.On, true);
+
+    this.log("[" + this.name + "] Setting color temperature to %sK", 1000000 / value);
+
+    var props = this.lightbulbService.getCharacteristic(Characteristic.ColorTemperature).props;
+
+    // There are only 100 steps of color temperature for fullColor bulbs, so let's convert from megakelvin to a value from 0-100
+    value = Math.max(0, (Math.round(Math.abs(value - props.minValue) / ((props.maxValue - props.minValue) / 100))));
+
+    this.light.sendCommands(this.commands[this.type].whiteTemperature(this.zone, value));
+  } else if (this.type === "white") {
+    // Send on command to ensure we're addressing the right bulb
+    this.lightbulbService.setCharacteristic(Characteristic.On, true);
+
+    // White bulbs don't support setting an absolue colour temp, so we'll do some math to figure out how to get there
+
+    // Keeping track of the value separately from Homebridge so we know when to change across multiple small adjustments
+    if (this.ct === -1) this.ct = this.lightbulbService.getCharacteristic(Characteristic.ColorTemperature).value;
+    var currentLevel = this.ct;
+
+    var targetLevel = value - currentLevel;
+    var targetDirection = Math.sign(targetLevel);
+
+    var props = this.lightbulbService.getCharacteristic(Characteristic.ColorTemperature).props;
+
+    // There are only 10 steps of color temperature for white bulbs, so let's convert from megakelvin to a value from 1-10
+    targetLevel = Math.max(0, (Math.round(Math.abs(targetLevel - props.minValue) / ((props.maxValue - props.minValue) / 10))));
+
+    if (targetDirection === 0 || targetDirection === -0 || targetLevel === 0) {
+      this.log("[" + this.name + "] Change not large enough to move to next step for bulb");
+    } else {
+      this.ct = value;
+
+      for (; targetLevel !== 0; targetLevel--) {
+        if (targetDirection === -1) {
+          this.light.sendCommands(this.commands[this.type].cooler(this.zone));
+          this.log.debug("[" + this.name + "] Sending bulb cooler command");
+        } else if (targetDirection === 1) {
+          this.light.sendCommands(this.commands[this.type].warmer(this.zone));
+          this.log.debug("[" + this.name + "] Sending bulb warmer command");
+        }
+      }
+    }
+  }
+  callback(null);
+};
+
 MiLightAccessory.prototype.identify = function(callback) {
   this.log("[" + this.name + "] Identify requested!");
   callback(null); // success
@@ -308,13 +353,21 @@ MiLightAccessory.prototype.getServices = function() {
     .addCharacteristic(new Characteristic.Brightness())
     .on("set", this.setBrightness.bind(this));
 
-  this.lightbulbService
-    .addCharacteristic(new Characteristic.Saturation())
-    .on("set", this.setSaturation.bind(this));
+  if (["fullColor", "rgbw", "rgb", "bridge"].indexOf(this.type) > -1) {
+    this.lightbulbService
+      .addCharacteristic(new Characteristic.Saturation())
+      .on("set", this.setSaturation.bind(this));
 
-  this.lightbulbService
-    .addCharacteristic(new Characteristic.Hue())
-    .on("set", this.setHue.bind(this));
+    this.lightbulbService
+      .addCharacteristic(new Characteristic.Hue())
+      .on("set", this.setHue.bind(this));
+  }
+
+  if (["fullColor", "white"].indexOf(this.type) > -1) {
+    this.lightbulbService
+      .addCharacteristic(new Characteristic.ColorTemperature())
+      .on("set", this.setColorTemperature.bind(this));
+  }
 
   return [this.informationService, this.lightbulbService];
 };
