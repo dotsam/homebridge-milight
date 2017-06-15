@@ -208,16 +208,18 @@ MiLightAccessory.prototype.setBrightness = function(level, callback) {
         if (this.brightness === -1) this.brightness = this.lightbulbService.getCharacteristic(Characteristic.Brightness).value;
         var currentLevel = this.brightness;
 
-        var targetLevel = level - currentLevel;
-        var targetDirection = Math.sign(targetLevel);
-        targetLevel = Math.max(0, (Math.round(Math.abs(targetLevel) / 10))); // There are 10 steps of brightness
+        var targetDiff = level - currentLevel;
+        var targetDirection = Math.sign(targetDiff);
+        targetDiff = Math.max(0, (Math.round(Math.abs(targetDiff) / 10))); // There are 10 steps of brightness
 
-        if (targetDirection === 0 || targetDirection === -0 || targetLevel === 0) {
+        if (targetDirection === 0 || targetDirection === -0 || targetDiff === 0) {
           this.log("[" + this.name + "] Change not large enough to move to next step for bulb");
         } else {
+          this.log.debug("[" + this.name + "] Setting brightness to internal value %d (%d steps away)", Math.round(currentLevel / 10), targetDiff);
+
           this.brightness = level;
 
-          for (; targetLevel !== 0; targetLevel--) {
+          for (; targetDiff > 0; targetDiff--) {
             if (targetDirection === 1) {
               this.light.sendCommands(this.commands[this.type].brightUp(this.zone));
               this.log.debug("[" + this.name + "] Sending brightness up command");
@@ -285,14 +287,14 @@ MiLightAccessory.prototype.setColorTemperature = function(value, callback) {
     // Send on command to ensure we're addressing the right bulb
     this.lightbulbService.setCharacteristic(Characteristic.On, true);
 
-    this.log("[" + this.name + "] Setting color temperature to %sK", 1000000 / value);
-
-    var props = this.lightbulbService.getCharacteristic(Characteristic.ColorTemperature).props;
+    this.log("[" + this.name + "] Setting color temperature to %sK", Math.round(1000000 / value));
 
     // There are only 100 steps of color temperature for fullColor bulbs, so let's convert from megakelvin to a value from 0-100
-    value = Math.max(0, (Math.round(Math.abs(value - props.minValue) / ((props.maxValue - props.minValue) / 100))));
+    miLightValue = this.mkToMilight(value, 100);
 
-    this.light.sendCommands(this.commands[this.type].whiteTemperature(this.zone, value));
+    this.log.debug("[" + this.name + "] Setting bulb color temperature to internal value %s", miLightValue);
+
+    this.light.sendCommands(this.commands[this.type].whiteTemperature(this.zone, miLightValue));
   } else if (this.type === "white") {
     // Send on command to ensure we're addressing the right bulb
     this.lightbulbService.setCharacteristic(Characteristic.On, true);
@@ -303,22 +305,20 @@ MiLightAccessory.prototype.setColorTemperature = function(value, callback) {
     if (this.ct === -1) this.ct = this.lightbulbService.getCharacteristic(Characteristic.ColorTemperature).value;
     var currentLevel = this.ct;
 
-    var targetLevel = value - currentLevel;
-    var targetDirection = Math.sign(targetLevel);
+    var targetDiff = this.mkToMilight(currentLevel, 10) - this.mkToMilight(value, 10);
+    var targetDirection = Math.sign(targetDiff);
+    targetDiff = Math.abs(targetDiff);
 
-    this.log("[" + this.name + "] Setting color temperature to %sK", 1000000 / value);
-
-    var props = this.lightbulbService.getCharacteristic(Characteristic.ColorTemperature).props;
-
-    // There are only 10 steps of color temperature for white bulbs, so let's convert from megakelvin to a value from 1-10
-    targetLevel = Math.max(0, (Math.round(Math.abs(targetLevel - props.minValue) / ((props.maxValue - props.minValue) / 10))));
-
-    if (targetDirection === 0 || targetDirection === -0 || targetLevel === 0) {
+    if (targetDirection === 0 || targetDirection === -0 || targetDiff === 0) {
       this.log("[" + this.name + "] Change not large enough to move to next step for bulb");
     } else {
+      this.log("[" + this.name + "] Setting color temperature to %sK", Math.round(1000000 / value));
+
+      this.log.debug("[" + this.name + "] Setting bulb color temperature to internal value %d (%d steps away)", this.mkToMilight(value, 10), targetDiff);
+
       this.ct = value;
 
-      for (; targetLevel !== 0; targetLevel--) {
+      for (; targetDiff > 0; targetDiff--) {
         if (targetDirection === -1) {
           this.light.sendCommands(this.commands[this.type].cooler(this.zone));
           this.log.debug("[" + this.name + "] Sending bulb cooler command");
@@ -331,6 +331,12 @@ MiLightAccessory.prototype.setColorTemperature = function(value, callback) {
   }
   callback(null);
 };
+
+MiLightAccessory.prototype.mkToMilight = function(mk, scale) {
+  var props = this.lightbulbService.getCharacteristic(Characteristic.ColorTemperature).props;
+
+  return Math.max(0, Math.abs((Math.round(Math.abs(mk - props.minValue) / ((props.maxValue - props.minValue) / scale))) - scale));
+}
 
 MiLightAccessory.prototype.identify = function(callback) {
   this.log("[" + this.name + "] Identify requested!");
