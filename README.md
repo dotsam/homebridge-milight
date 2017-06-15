@@ -52,7 +52,7 @@ Where the parameters are:
    * lights: An object whose properties are one of "fullColor", "rgbw", "rgb", "bridge" (the built-in light in the iBox 1), or "white", depending on the type of bulb, and whose value is an array of the names of the zones, in order, 1-4. Use `null` if a zone is skipped. RGB lamps and the bridge light can only have a single zone. (required)
 
 #Bridge Versions
-The `version` referred to in the config above matches the versioning used by limitlessled.com. They refer to the "v6" bridge as the bridge released in late 2016. The original manufaturer, Futlight, refers to the new version of the bridge as the "iBox". The iBox1 is the version with a built-in light (configured as "bridge" bulb type), while the iBox2 is a similar design to the previous bridges. The newer bridge is also, confusingly, refered to as bridge "3.0" by some sellers. Regardless, all of the iBox/3.0 variants should be configured as version "v6".
+The `version` referred to in the config above matches the versioning used by limitlessled.com. They refer to the "v6" bridge as the bridge released in late 2016. The original manufacturer, Futlight, refers to the new version of the bridge as the "iBox". The iBox1 is the version with a built-in light (configured as "bridge" bulb type), while the iBox2 is a similar design to the previous bridges. The newer bridge is also, confusingly, referred to as bridge "3.0" by some sellers. Regardless, all of the iBox/3.0 variants should be configured as version "v6".
 
 This plugin previously used 3-byte UDP commands as the default, which the "v1" and "v2" bridges required, but "versions" 3-5 all supported a shorter 2-byte sequence which some users may see better results with. This command set also uses an expanded brightness range for RGBW bulbs, which hasn't been confirmed to actually make any difference.
 
@@ -74,6 +74,7 @@ The node-milight-promise library provides additional debugging output when the M
 ### 1.1.0-beta
  * Implemented colour temperature control with new official HomeKit characteristic. Only known to be working with the Home app right now
  * Possible fix for issues with RGBWW bulbs requiring two commands to enter colour mode from white mode
+ * Fixed bug where bulb set in night mode might not be addressed again correctly for subsequent commands
  * Update node-milight-promise dependancy to ^0.1.5
 
 ### 1.0.1
@@ -87,7 +88,7 @@ The node-milight-promise library provides additional debugging output when the M
 ### 0.1.10
  * Fix command sending to the bridge light
  * Further tweaks to the logic of setting/resetting hue/saturation/white mode
- * This is likely the last release before an upcomming 1.0 release that will remove support for old config formats. Please check the Homebridge log to see if your congiguration generates any warnings, and update your configuration as required.
+ * This is likely the last release before an upcoming 1.0 release that will remove support for old config formats. Please check the Homebridge log to see if your configuration generates any warnings, and update your configuration as required.
 
 ### 0.1.9
  * Finally fix the bug where colour/white mode was not set correctly when changing hue/saturation
