@@ -71,6 +71,11 @@ The node-milight-promise library provides additional debugging output when the M
 
 # Changelog
 
+### 1.1.0-beta
+ * Implemented colour temperature control with new official HomeKit characteristic. Only known to be working with the Home app right now
+ * Possible fix for issues with RGBWW bulbs requiring two commands to enter colour mode from white mode
+ * Update node-milight-promise dependancy to ^0.1.5
+
 ### 1.0.1
  * Upgrade node-milight-promise dependancy to ^0.1.1 and use its new saturation inversion option
 
