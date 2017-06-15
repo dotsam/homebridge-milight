@@ -181,6 +181,9 @@ MiLightAccessory.prototype.setBrightness = function(level, callback) {
     this.light.pause(100);
     this.light.sendCommands(this.commands[this.type].nightMode(this.zone));
 
+    // Manually clear last bulb sent so that "on" is sent when we next interact with this bulb
+    this.lastSent.bulb = '';
+
   } else {
     // Send on command to ensure we're addressing the right bulb
     this.lightbulbService.setCharacteristic(Characteristic.On, true);
@@ -249,6 +252,8 @@ MiLightAccessory.prototype.setHue = function(value, callback, context) {
 
     if (this.version === "v6" && this.type !== "bridge") {
       this.light.sendCommands(this.commands[this.type].hue(this.zone, helper.hsvToMilightColor([value, 0, 0]), true));
+      // Dupe the command to make sure we leave white mode
+      this.light.sendCommands(this.commands[this.type].hue(this.zone, helper.hsvToMilightColor([value, 0, 0]), true));
     } else {
       this.light.sendCommands(this.commands[this.type].hue(helper.hsvToMilightColor([value, 0, 0]), true));
     }
@@ -270,6 +275,8 @@ MiLightAccessory.prototype.setSaturation = function(value, callback) {
 
       this.log("[" + this.name + "] Setting saturation to %s", value);
 
+      this.light.sendCommands(this.commands[this.type].saturation(this.zone, value, true));
+      // Dupe the command to make sure we leave white mode
       this.light.sendCommands(this.commands[this.type].saturation(this.zone, value, true));
     } else {
       // We can get these commands out-of-order, so set the hue again just to be sure
