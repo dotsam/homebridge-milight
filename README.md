@@ -71,11 +71,12 @@ The node-milight-promise library provides additional debugging output when the M
 
 # Changelog
 
-### 1.1.0-beta
- * Implemented colour temperature control with new official HomeKit characteristic. Only known to be working with the Home app right now
- * Possible fix for issues with RGBWW bulbs requiring two commands to enter colour mode from white mode
+### 1.1.0
+ * Implemented colour temperature control with new official HomeKit characteristic. Not supported by all HomeKit apps
+ * RGBWW/fullColor bulbs should be set to their last colour temperature value when going in to white mode
  * Fixed bug where bulb set in night mode might not be addressed again correctly for subsequent commands
- * Update node-milight-promise dependancy to ^0.1.5
+ * Possible fix for RGBWW/fullColor bulbs not getting correct colours set depending on command order
+ * Update node-milight-promise dependancy to ^0.2.2
 
 ### 1.0.1
  * Upgrade node-milight-promise dependancy to ^0.1.1 and use its new saturation inversion option
