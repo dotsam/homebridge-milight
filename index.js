@@ -252,8 +252,6 @@ MiLightAccessory.prototype.setHue = function(value, callback, context) {
 
     if (this.version === "v6" && this.type !== "bridge") {
       this.light.sendCommands(this.commands[this.type].hue(this.zone, helper.hsvToMilightColor([value, 0, 0]), true));
-      // Dupe the command to make sure we leave white mode
-      this.light.sendCommands(this.commands[this.type].hue(this.zone, helper.hsvToMilightColor([value, 0, 0]), true));
     } else {
       this.light.sendCommands(this.commands[this.type].hue(helper.hsvToMilightColor([value, 0, 0]), true));
     }
@@ -275,8 +273,6 @@ MiLightAccessory.prototype.setSaturation = function(value, callback) {
 
       this.log("[" + this.name + "] Setting saturation to %s", value);
 
-      this.light.sendCommands(this.commands[this.type].saturation(this.zone, value, true));
-      // Dupe the command to make sure we leave white mode
       this.light.sendCommands(this.commands[this.type].saturation(this.zone, value, true));
     } else {
       // We can get these commands out-of-order, so set the hue again just to be sure
