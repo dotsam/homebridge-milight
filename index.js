@@ -246,7 +246,12 @@ MiLightAccessory.prototype.setHue = function(value, callback, context) {
 
   if (["fullColor", "rgbw", "bridge"].indexOf(this.type) > -1 && this.lightbulbService.getCharacteristic(Characteristic.Saturation).value === 0 && this.hue !== -1 && context !== 'internal') {
     this.log("[" + this.name + "] Saturation is 0, making sure bulb is in white mode");
-    this.light.sendCommands(this.commands[this.type].whiteMode(this.zone));
+    // If this is a fullColor bulb, set the colour temperature to the last stored value, else (rgbw or bridge) just set to white mode
+    if (this.type === "fullColor") {
+      this.lightbulbService.getCharacteristic(Characteristic.ColorTemperature).setValue(this.lightbulbService.getCharacteristic(Characteristic.ColorTemperature).value, null);
+    } else {
+      this.light.sendCommands(this.commands[this.type].whiteMode(this.zone));
+    }
   } else if (this.type !== "white") {
     this.hue = value;
 
@@ -266,15 +271,22 @@ MiLightAccessory.prototype.setSaturation = function(value, callback) {
       this.lightbulbService.setCharacteristic(Characteristic.On, true);
 
       this.log("[" + this.name + "] Saturation set to 0, setting bulb to white");
-      this.light.sendCommands(this.commands[this.type].whiteMode(this.zone));
-    } else if (this.type === "fullColor") {
-      // Send on command to ensure we're addressing the right bulb
-      this.lightbulbService.setCharacteristic(Characteristic.On, true);
-
-      this.log("[" + this.name + "] Setting saturation to %s", value);
-
-      this.light.sendCommands(this.commands[this.type].saturation(this.zone, value, true));
+      // If this is a fullColor bulb, set the colour temperature to the last stored value, else (rgbw or bridge) just set to white mode
+      if (this.type === "fullColor") {
+        this.lightbulbService.getCharacteristic(Characteristic.ColorTemperature).setValue(this.lightbulbService.getCharacteristic(Characteristic.ColorTemperature).value, null);
+      } else {
+        this.light.sendCommands(this.commands[this.type].whiteMode(this.zone));
+      }
     } else {
+      if (this.type === "fullColor") {
+        // Send on command to ensure we're addressing the right bulb
+        this.lightbulbService.setCharacteristic(Characteristic.On, true);
+
+        this.log("[" + this.name + "] Setting saturation to %s", value);
+
+        this.light.sendCommands(this.commands[this.type].saturation(this.zone, value, true));
+      }
+
       // We can get these commands out-of-order, so set the hue again just to be sure
       this.log.info("[" + this.name + "] Saturation set to %s, but hue is not 0, resetting hue", value);
       this.lightbulbService.getCharacteristic(Characteristic.Hue).setValue(this.lightbulbService.getCharacteristic(Characteristic.Hue).value, null, 'internal');
