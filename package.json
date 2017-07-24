@@ -19,6 +19,7 @@
     "homebridge": ">=0.2.0"
   },
   "dependencies": {
-    "node-milight-promise": "^0.2.2"
+    "node-milight-promise": "^0.2.2",
+    "underscore": "^1.8.3"
   }
 }
