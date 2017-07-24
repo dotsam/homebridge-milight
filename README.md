@@ -26,8 +26,9 @@ Example config:
                 "version": "v6",
                 "lights": {"fullColor": ["Kitchen",null,"Bedroom","Hallway"],
                            "rgbw": ["Living Room", "Downstairs Bedroom"]},
+                "delay": 100,
                 "repeat": 1,
-                "delay": 100
+                "debounce": 150
               },
               {
                 "ip_address": "10.0.1.26",
@@ -49,6 +50,7 @@ Where the parameters are:
    * version: What version of the bridge this is. Set "v6" for latest bridge, "v3" for 2-byte UDP messages, or "v2" for 3-byte UDP messages  (optional - default "v2")
    * delay: Delay in ms between commands sent over UDP. May cause heavy command queuing when set too high. Try decreasing to improve performance (optional - default 100)
    * repeat: Number of times to repeat the UDP command for better reliability. For rgb or white bulbs, this should be set to 1 so as not to change brightness/temperature more than desired (optional - default 3)
+   * debounce: Time in ms to debounce commands from HomeBridge. Default is 150ms which seems sane in testing, but feedback is appreciated if you change this setting.
    * lights: An object whose properties are one of "fullColor", "rgbw", "rgb", "bridge" (the built-in light in the iBox 1), or "white", depending on the type of bulb, and whose value is an array of the names of the zones, in order, 1-4. Use `null` if a zone is skipped. RGB lamps and the bridge light can only have a single zone. (required)
 
 #Bridge Versions
@@ -70,6 +72,10 @@ The node-milight-promise library provides additional debugging output when the M
 `MILIGHT_DEBUG=true homebridge -D`
 
 # Changelog
+
+### 1.2.0
+ * Added debouncing for all commands received from HomeKit. This allows us to order commands to the bulbs in the way that works best and perform additional logic. The debounce time is currently set to 150ms, which should be a very safe value to prevent command queueing and make sure that a full set of HSV values are received from HomeKit before acting on them. Lower values will cause lights to react more quickly, but could cause command queuing problems, or errors in setting light colour.
+ * Now tracking white and colour brightness levels separately so values should correctly reflect based on what mode the lights are in
 
 ### 1.1.0
  * Implemented colour temperature control with new official HomeKit characteristic. Not supported by all HomeKit apps
