@@ -72,6 +72,9 @@ The node-milight-promise library provides additional debugging output when the M
 
 # Changelog
 
+### 1.1.2
+ * Make sure we're enforcing the new maximum of 8 zones for v6/fullColor
+
 ### 1.1.1
  * Add support for 8-zone control of fullColor bulbs on v6 bridges (#39)
  * Support multiple bridges on the same IP with different ports (#34) (thanks @lundberg)
