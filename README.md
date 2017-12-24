@@ -49,6 +49,7 @@ Where the parameters are:
    * version: What version of the bridge this is. Set "v6" for latest bridge, "v3" for 2-byte UDP messages, or "v2" for 3-byte UDP messages  (optional - default "v2")
    * delay: Delay in ms between commands sent over UDP. May cause heavy command queuing when set too high. Try decreasing to improve performance (optional - default 100)
    * repeat: Number of times to repeat the UDP command for better reliability. For rgb or white bulbs, this should be set to 1 so as not to change brightness/temperature more than desired (optional - default 3)
+   * use8Zone: Boolean value, only used when there are more than 4 fullColor bulbs added to a v6 bridge. This should function without this property being set, but an info message is printed out as not all bridge/bulb firmwares support this.
    * lights: An object whose properties are one of "fullColor", "rgbw", "rgb", "bridge" (the built-in light in the iBox 1), or "white", depending on the type of bulb, and whose value is an array of the names of the zones, in order, 1-4. Use `null` if a zone is skipped. RGB lamps and the bridge light can only have a single zone. (required)
 
 #Bridge Versions
@@ -70,6 +71,11 @@ The node-milight-promise library provides additional debugging output when the M
 `MILIGHT_DEBUG=true homebridge -D`
 
 # Changelog
+
+### 1.1.1
+ * Add support for 8-zone control of fullColor bulbs on v6 bridges (#39)
+ * Support multiple bridges on the same IP with different ports (#34) (thanks @lundberg)
+ * Update node-milight-promise to use master branch
 
 ### 1.1.0
  * Implemented colour temperature control with new official HomeKit characteristic. Not supported by all HomeKit apps
