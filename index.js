@@ -41,6 +41,19 @@ MiLightPlatform.prototype.accessories = function(callback) {
 
   if (this.config.bridges.length > 0) {
     for (var bridgeConfig of this.config.bridges) {
+
+      // Construct or parse unique bridge host address
+      if (bridgeConfig.host) {
+        var hostBits = bridgeConfig.host.split(":");
+        bridgeConfig.ip_address = hostBits[0];
+        bridgeConfig.port = parseInt(hostBits[1], 10);
+      } else {
+        bridgeConfig.host = bridgeConfig.ip_address ? bridgeConfig.ip_address : "";
+        if (bridgeConfig.port) {
+          bridgeConfig.host += ":" + bridgeConfig.port;
+        }
+      }
+
       if (bridgeConfig.lights && Object.keys(bridgeConfig.lights).length > 0) {
 
         // Setting appropriate commands per bridge version. Defaults to v2 as those are the commands that previous versions of the plugin used
@@ -69,10 +82,11 @@ MiLightPlatform.prototype.accessories = function(callback) {
 
             if (zonesLength > 0) {
               // If it hasn't been already, initialize a new controller to be used for all zones defined for this bridge
-              if (typeof(bridgeControllers[bridgeConfig.ip_address]) != "object") {
-                bridgeControllers[bridgeConfig.ip_address] = new Milight({
+              if (typeof(bridgeControllers[bridgeConfig.host]) != "object") {
+                bridgeControllers[bridgeConfig.host] = new Milight({
                   ip: bridgeConfig.ip_address,
                   port: bridgeConfig.port,
+                  host: bridgeConfig.host,
                   delayBetweenCommands: bridgeConfig.delay,
                   commandRepeat: bridgeConfig.repeat,
                   type: bridgeConfig.version
@@ -80,15 +94,15 @@ MiLightPlatform.prototype.accessories = function(callback) {
 
                 // Attach the right commands to the bridgeController object
                 if (bridgeConfig.version === "v6") {
-                  bridgeControllers[bridgeConfig.ip_address].commands = require("node-milight-promise").commandsV6;
+                  bridgeControllers[bridgeConfig.host].commands = require("node-milight-promise").commandsV6;
                 } else if (bridgeConfig.version === "v3") {
-                  bridgeControllers[bridgeConfig.ip_address].commands = require("node-milight-promise").commands2;
+                  bridgeControllers[bridgeConfig.host].commands = require("node-milight-promise").commands2;
                 } else {
-                  bridgeControllers[bridgeConfig.ip_address].commands = require("node-milight-promise").commands;
+                  bridgeControllers[bridgeConfig.host].commands = require("node-milight-promise").commands;
                 }
 
                 // Used to keep track of the last targeted bulb
-                bridgeControllers[bridgeConfig.ip_address].lastSent = {
+                bridgeControllers[bridgeConfig.host].lastSent = {
                   bulb: ''
                 };
               }
@@ -99,7 +113,7 @@ MiLightPlatform.prototype.accessories = function(callback) {
                 if (bulbConfig.name = bridgeConfig.lights[lightType][i]) {
                   bulbConfig.type = lightType;
                   bulbConfig.zone = i + 1;
-                  var bulb = new MiLightAccessory(bulbConfig, bridgeControllers[bridgeConfig.ip_address], this.log);
+                  var bulb = new MiLightAccessory(bulbConfig, bridgeControllers[bridgeConfig.host], this.log);
                   foundBulbs.push(bulb);
                 } else if (bridgeConfig.lights[lightType][i] !== null) {
                   this.log.error("Unable to add light from '%s' array, index %d", lightType, i);
@@ -109,7 +123,7 @@ MiLightPlatform.prototype.accessories = function(callback) {
           }
         }
       } else {
-        this.log.error("Could not read any lights from bridge %s", bridgeConfig.ip_address);
+        this.log.error("Could not read any lights from bridge %s", bridgeConfig.host);
       }
     }
   } else {
