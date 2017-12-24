@@ -65,7 +65,7 @@ MiLightPlatform.prototype.accessories = function(callback) {
           if (["fullColor", "rgbw", "rgb", "white", "bridge"].indexOf(lightType) === -1) {
             this.log.error("Invalid bulb type '%s' specified.", lightType);
           } else if (bridgeConfig.version !== "v6" && ["fullColor", "bridge"].indexOf(lightType) > -1) {
-            this.log.error("Bulb type '%s' only avaliable with v6 bridge!", lightType);
+            this.log.error("Bulb type '%s' only available with v6 bridge!", lightType);
           } else {
             var zonesLength = bridgeConfig.lights[lightType].length;
 
@@ -76,8 +76,16 @@ MiLightPlatform.prototype.accessories = function(callback) {
               this.log.warn("Bulb type '%s' only supports a single zone. Only the first defined bulb will be used.", lightType);
               zonesLength = 1;
             } else if (zonesLength > 4) {
-              this.log.warn("Only a maximum of 4 zones per bulb type are supported per bridge. Only recognizing the first 4 zones.");
-              zonesLength = 4;
+              if (bridgeConfig.version !== "v6") {
+                this.log.warn("Only a maximum of 4 zones per bulb type are supported per bridge. Only recognizing the first 4 zones.");
+                zonesLength = 4;
+              } else if (lightType === "fullColor" && bridgeConfig.use8Zone === undefined) {
+                this.log.info("More than 8 fullColor bulbs added to a v6 bridge, enabling 8-zone support. May not work with all bridges/bulbs. Set the `use8Zone` property of the bridge config to either silence this message or disable this functionality.")
+                bridgeConfig.use8Zone = true;
+              } else if (lightType === "fullColor" && bridgeConfig.use8Zone === false) {
+                zonesLength = 4;
+                bridgeConfig.use8Zone = false;
+              }
             }
 
             if (zonesLength > 0) {
@@ -89,7 +97,8 @@ MiLightPlatform.prototype.accessories = function(callback) {
                   host: bridgeConfig.host,
                   delayBetweenCommands: bridgeConfig.delay,
                   commandRepeat: bridgeConfig.repeat,
-                  type: bridgeConfig.version
+                  type: bridgeConfig.version,
+                  fullSync: false
                 });
 
                 // Attach the right commands to the bridgeController object
@@ -103,7 +112,7 @@ MiLightPlatform.prototype.accessories = function(callback) {
 
                 // Used to keep track of the last targeted bulb
                 bridgeControllers[bridgeConfig.host].lastSent = {
-                  bulb: ''
+                  bulb: null
                 };
               }
 
@@ -111,7 +120,11 @@ MiLightPlatform.prototype.accessories = function(callback) {
               for (var i = 0; i < zonesLength; i++) {
                 var bulbConfig = {};
                 if (bulbConfig.name = bridgeConfig.lights[lightType][i]) {
-                  bulbConfig.type = lightType;
+                  if (lightType === "fullColor" && bridgeConfig.use8Zone === true) {
+                    bulbConfig.type = "fullColor8Zone";
+                  } else {
+                    bulbConfig.type = lightType;
+                  }
                   bulbConfig.zone = i + 1;
                   var bulb = new MiLightAccessory(bulbConfig, bridgeControllers[bridgeConfig.host], this.log);
                   foundBulbs.push(bulb);
@@ -167,7 +180,7 @@ function MiLightAccessory(bulbConfig, bridgeController, log) {
 MiLightAccessory.prototype.setPowerState = function(powerOn, callback) {
   if (powerOn) {
     if (this.lastSent.bulb === this.type + this.zone) {
-      this.log.debug("[" + this.name + "] Ommiting 'on' command as we've sent it to this bulb most recently");
+      this.log.debug("[" + this.name + "] Omitting 'on' command as we've sent it to this bulb most recently");
     } else {
       this.log("[" + this.name + "] Setting power state to on");
       this.lastSent.bulb = this.type + this.zone;
