@@ -80,8 +80,13 @@ MiLightPlatform.prototype.accessories = function(callback) {
                 this.log.warn("Only a maximum of 4 zones per bulb type are supported per bridge. Only recognizing the first 4 zones.");
                 zonesLength = 4;
               } else if (lightType === "fullColor" && bridgeConfig.use8Zone === undefined) {
-                this.log.info("More than 8 fullColor bulbs added to a v6 bridge, enabling 8-zone support. May not work with all bridges/bulbs. Set the `use8Zone` property of the bridge config to either silence this message or disable this functionality.")
+                this.log.info("More than 4 fullColor bulbs added to a v6 bridge, enabling 8-zone support. May not work with all bridges/bulbs. Set the `use8Zone` property of the bridge config to either silence this message or disable this functionality.")
                 bridgeConfig.use8Zone = true;
+
+                if (zonesLength > 8) {
+                  this.log.warn("Only a maximum of 8 zones per bulb type are supported per bridge. Only recognizing the first 8 zones.");
+                  zonesLength = 8;
+                }
               } else if (lightType === "fullColor" && bridgeConfig.use8Zone === false) {
                 zonesLength = 4;
                 bridgeConfig.use8Zone = false;
