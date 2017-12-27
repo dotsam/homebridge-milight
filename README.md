@@ -72,6 +72,9 @@ The node-milight-promise library provides additional debugging output when the M
 
 # Changelog
 
+### 1.1.3
+ * Switched to node-milight-promise ^0.3.0
+
 ### 1.1.2
  * Make sure we're enforcing the new maximum of 8 zones for v6/fullColor
 
