@@ -21,6 +21,7 @@ function MiLightPlatform(log, config) {
 MiLightPlatform.prototype.accessories = function(callback) {
   var foundBulbs = [];
   var bridgeControllers = {};
+  var platform = this;
 
   if (this.config.bridges.length > 0) {
     for (var bridgeConfig of this.config.bridges) {
@@ -133,6 +134,13 @@ MiLightPlatform.prototype.accessories = function(callback) {
 
   if (foundBulbs.length <= 0) {
     this.log.error("No valid bulbs found in any bridge.");
+  }
+
+  // Catch errors from node-milight-promise
+  for (const bridgeController in bridgeControllers) {
+    bridgeControllers[bridgeController].ready().catch(function(e) {
+      platform.log.error("[%s] %s", bridgeController, e.message);
+    });
   }
 
   callback(foundBulbs);
