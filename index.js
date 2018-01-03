@@ -176,7 +176,7 @@ MiLightAccessory.prototype.setPowerState = function(powerOn, callback) {
     }
   } else {
     this.log("[" + this.name + "] Setting power state to off");
-    this.lastSent.bulb = '';
+    this.lastSent.bulb = null;
     this.light.sendCommands(this.commands[this.type].off(this.zone));
   }
   callback(null);
@@ -197,7 +197,7 @@ MiLightAccessory.prototype.setBrightness = function(level, callback) {
     this.light.sendCommands(this.commands[this.type].nightMode(this.zone));
 
     // Manually clear last bulb sent so that "on" is sent when we next interact with this bulb
-    this.lastSent.bulb = '';
+    this.lastSent.bulb = null;
 
   } else {
     // Send on command to ensure we're addressing the right bulb
