@@ -1,7 +1,7 @@
 var Milight = require("node-milight-promise").MilightController;
 var helper = require("node-milight-promise").helper;
-var inherits = require('util').inherits;
-var debounce = require('underscore').debounce;
+var inherits = require("util").inherits;
+var debounce = require("underscore").debounce;
 
 "use strict";
 
@@ -165,15 +165,17 @@ function MiLightAccessory(bulbConfig, bridgeController, log) {
   this.debounceTime = bulbConfig.debounceTime;
 
   // Used to internally track values so we know when to actually send commands (order is important)
+  // Should match HAP Characteristic.getDefaultValue()
   this.internalValue = {};
-  this.internalValue.Saturation = -1;
-  this.internalValue.ColorTemperature = -1;
-  this.internalValue.Hue = -1;
-  this.internalValue.Brightness = -1;
+  this.internalValue.On = false;
+  this.internalValue.Saturation = 0;
+  this.internalValue.ColorTemperature = 153;
+  this.internalValue.Hue = 0;
+  this.internalValue.Brightness = 0;
 
   this.colorMode = false; // Default to white mode
-  this.whiteBrightness = 100;
-  this.colorBrightness = 100;
+  this.whiteBrightness = 0;
+  this.colorBrightness = 0;
 
   // assign to the bridge
   this.light = bridgeController;
@@ -188,10 +190,10 @@ function MiLightAccessory(bulbConfig, bridgeController, log) {
   this.lastSent = this.light.lastSent;
 
   // Set up our debounce handler here so we have access to the object properties we need
-  MiLightAccessory.prototype.debounceUpdateBulb = debounce(this.updateBulb, this.debounceTime);
+  this.debounceUpdateBulb = debounce(this.updateBulb, this.debounceTime);
 }
 
-MiLightAccessory.prototype.setPowerState = function(value, callback) {
+MiLightAccessory.prototype.setOn = function(value, callback) {
   if (value) {
     if (this.lastSent.bulb === this.type + this.zone) {
       this.log.debug("[" + this.name + "] Omitting 'on' command as we've sent it to this bulb most recently");
@@ -205,6 +207,7 @@ MiLightAccessory.prototype.setPowerState = function(value, callback) {
     this.lastSent.bulb = null;
     this.light.sendCommands(this.commands[this.type].off(this.zone));
   }
+  this.internalValue.On = value;
   callback(null);
 };
 
@@ -309,7 +312,7 @@ MiLightAccessory.prototype.setSaturation = function(value, callback) {
 
       // If this is a fullColor bulb, set the colour temperature to the last stored value, else (rgbw or bridge) just set to white mode
       if (["fullColor", "fullColor8Zone"].indexOf(this.type) > -1) {
-        this.lightbulbService.getCharacteristic(Characteristic.ColorTemperature).setValue(this.lightbulbService.getCharacteristic(Characteristic.ColorTemperature).value, null);
+        this.setColorTemperature(this.lightbulbService.getCharacteristic(Characteristic.ColorTemperature).value, function() {});
       } else {
         this.light.sendCommands(this.commands[this.type].whiteMode(this.zone));
       }
@@ -320,6 +323,9 @@ MiLightAccessory.prototype.setSaturation = function(value, callback) {
       this.log("[" + this.name + "] Setting saturation to %s", value);
 
       this.light.sendCommands(this.commands[this.type].saturation(this.zone, value, true));
+    } else {
+      this.log("[" + this.name + "] Saturation set to non-zero value %d, setting bulb %s bulb back to colour mode", value, this.type);
+      this.setHue(this.lightbulbService.getCharacteristic(Characteristic.Hue).value, function() {});
     }
   } else {
     this.log.info("[" + this.name + "] Setting saturation to %s (NOTE: No impact on %s %s bulbs)", value, this.type, this.log.prefix);
@@ -399,13 +405,22 @@ MiLightAccessory.prototype.swapBrightnessValues = function(mode) {
   this.lightbulbService.updateCharacteristic(Characteristic.Brightness, this.colorMode ? this.colorBrightness : this.whiteBrightness);
 };
 
-MiLightAccessory.prototype.updateBulb = function() {
+MiLightAccessory.prototype.updateBulb = function(value) {
   for (var characteristic in this.internalValue) {
-    if (this.lightbulbService.testCharacteristic(Characteristic[characteristic]) && this.internalValue[characteristic] !== this.lightbulbService.getCharacteristic(Characteristic[characteristic]).value) {
-      if (characteristic === "Hue" && this.internalValue.Saturation === 0) {
+    if (this.lightbulbService.testCharacteristic(Characteristic[characteristic]) && (this.internalValue[characteristic] !== this.lightbulbService.getCharacteristic(Characteristic[characteristic]).value) || characteristic === "On") {
+      this.log.debug("[" + this.name + "] Processing value %s for characteristic %s", value, characteristic);
+
+      if (characteristic === "On" && this.lightbulbService.getCharacteristic(Characteristic.Brightness).value <= 5 && this.type !== "rgb") {
+        this.internalValue[characteristic] = this.lightbulbService.getCharacteristic(Characteristic[characteristic]).value;
+        this.log.debug("[" + this.name + "] Bulb to be set to night mode, avoiding sending 'on' command");
+        continue;
+      }
+      if (characteristic === "Hue" && this.lightbulbService.getCharacteristic(Characteristic.Saturation).value === 0) {
         this.internalValue[characteristic] = this.lightbulbService.getCharacteristic(Characteristic[characteristic]).value;
         this.log.debug("[" + this.name + "] Not setting bulb hue to %d as we've already put the bulb in white mode (saturation == 0)", this.internalValue[characteristic]);
         continue;
+      } else if (characteristic === "Hue" && this.lightbulbService.getCharacteristic(Characteristic.Saturation).value !== 0) {
+        //noop
       }
       var functionName = "set" + characteristic;
       this[functionName](this.lightbulbService.getCharacteristic(Characteristic[characteristic]).value, function() {});
@@ -437,7 +452,7 @@ MiLightAccessory.prototype.getServices = function() {
 
   this.lightbulbService
     .getCharacteristic(Characteristic.On)
-    .on("set", this.setPowerState.bind(this));
+    .on("set", this.update.bind(this));
 
   this.lightbulbService
     .addCharacteristic(new Characteristic.Brightness())
