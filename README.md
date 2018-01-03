@@ -51,6 +51,7 @@ Where the parameters are:
    * delay: Delay in ms between commands sent over UDP. May cause heavy command queuing when set too high. Try decreasing to improve performance (optional - default 100)
    * repeat: Number of times to repeat the UDP command for better reliability. For rgb or white bulbs, this should be set to 1 so as not to change brightness/temperature more than desired (optional - default 3)
    * debounce: Time in ms to debounce commands from HomeBridge. Default is 150ms which seems sane in testing, but feedback is appreciated if you change this setting.
+   * use8Zone: Boolean value, only used when there are more than 4 fullColor bulbs added to a v6 bridge. This should function without this property being set, but an info message is printed out as not all bridge/bulb firmwares support this.
    * lights: An object whose properties are one of "fullColor", "rgbw", "rgb", "bridge" (the built-in light in the iBox 1), or "white", depending on the type of bulb, and whose value is an array of the names of the zones, in order, 1-4. Use `null` if a zone is skipped. RGB lamps and the bridge light can only have a single zone. (required)
 
 #Bridge Versions
@@ -76,6 +77,23 @@ The node-milight-promise library provides additional debugging output when the M
 ### 1.2.0
  * Added debouncing for all commands received from HomeKit. This allows us to order commands to the bulbs in the way that works best and perform additional logic. The debounce time is currently set to 150ms, which should be a very safe value to prevent command queueing and make sure that a full set of HSV values are received from HomeKit before acting on them. Lower values will cause lights to react more quickly, but could cause command queuing problems, or errors in setting light colour.
  * Now tracking white and colour brightness levels separately so values should correctly reflect based on what mode the lights are in
+
+### 1.1.4
+ * Fix issues with 8 zone fullColor bulbs not being sent the correct commands
+ * Bump minimum Homebridge version to 0.4.27 so we can be sure that the color temperature characteristic will be there, and we can simply modify min/max values
+ * Basic error handling of connection promise from node-milight-promise
+ * Ability to pass through all node-milight-promise options (`fullSync`, `sendKeepAlives`, `sessionTimeout`)
+
+### 1.1.3
+ * Switched to node-milight-promise ^0.3.0
+
+### 1.1.2
+ * Make sure we're enforcing the new maximum of 8 zones for v6/fullColor
+
+### 1.1.1
+ * Add support for 8-zone control of fullColor bulbs on v6 bridges (#39)
+ * Support multiple bridges on the same IP with different ports (#34) (thanks @lundberg)
+ * Update node-milight-promise to use master branch
 
 ### 1.1.0
  * Implemented colour temperature control with new official HomeKit characteristic. Not supported by all HomeKit apps

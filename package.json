@@ -16,10 +16,10 @@
     "homebridge-plugin"
   ],
   "peerDepdendencies": {
-    "homebridge": ">=0.2.0"
+    "homebridge": ">=0.4.27"
   },
   "dependencies": {
-    "node-milight-promise": "^0.2.2",
+    "node-milight-promise": "^0.3.0",
     "underscore": "^1.8.3"
   }
 }

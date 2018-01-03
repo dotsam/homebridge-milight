@@ -11,23 +11,6 @@ module.exports = function(homebridge) {
   Service = homebridge.hap.Service;
   Characteristic = homebridge.hap.Characteristic;
 
-  // Define the standard HomeKit color temperature characteristic until it's in HAP-NodeJS
-  Characteristic.ColorTemperature = function() {
-    Characteristic.call(this, 'Color Temperature', '000000CE-0000-1000-8000-0026BB765291');
-    this.setProps({
-      format: Characteristic.Formats.UINT32,
-      unit: "mired",
-      maxValue: 370,
-      minValue: 153,
-      minStep: 1,
-      perms: [Characteristic.Perms.READ, Characteristic.Perms.WRITE, Characteristic.Perms.NOTIFY]
-    });
-    // maxValue 370 = 2700K (1000000/2700)
-    // minValue 153 = 6500K (1000000/6500)
-    this.value = this.getDefaultValue();
-  };
-  inherits(Characteristic.ColorTemperature, Characteristic);
-
   homebridge.registerPlatform("homebridge-milight", "MiLight", MiLightPlatform);
 };
 
@@ -39,9 +22,23 @@ function MiLightPlatform(log, config) {
 MiLightPlatform.prototype.accessories = function(callback) {
   var foundBulbs = [];
   var bridgeControllers = {};
+  var platform = this;
 
   if (this.config.bridges.length > 0) {
     for (var bridgeConfig of this.config.bridges) {
+
+      // Construct or parse unique bridge host address
+      if (bridgeConfig.host) {
+        var hostBits = bridgeConfig.host.split(":");
+        bridgeConfig.ip_address = hostBits[0];
+        bridgeConfig.port = parseInt(hostBits[1], 10);
+      } else {
+        bridgeConfig.host = bridgeConfig.ip_address ? bridgeConfig.ip_address : "";
+        if (bridgeConfig.port) {
+          bridgeConfig.host += ":" + bridgeConfig.port;
+        }
+      }
+
       if (bridgeConfig.lights && Object.keys(bridgeConfig.lights).length > 0) {
 
         // Setting appropriate commands per bridge version. Defaults to v2 as those are the commands that previous versions of the plugin used
@@ -58,7 +55,7 @@ MiLightPlatform.prototype.accessories = function(callback) {
           if (["fullColor", "rgbw", "rgb", "white", "bridge"].indexOf(lightType) === -1) {
             this.log.error("Invalid bulb type '%s' specified.", lightType);
           } else if (bridgeConfig.version !== "v6" && ["fullColor", "bridge"].indexOf(lightType) > -1) {
-            this.log.error("Bulb type '%s' only avaliable with v6 bridge!", lightType);
+            this.log.error("Bulb type '%s' only available with v6 bridge!", lightType);
           } else {
             var zonesLength = bridgeConfig.lights[lightType].length;
 
@@ -69,44 +66,65 @@ MiLightPlatform.prototype.accessories = function(callback) {
               this.log.warn("Bulb type '%s' only supports a single zone. Only the first defined bulb will be used.", lightType);
               zonesLength = 1;
             } else if (zonesLength > 4) {
-              this.log.warn("Only a maximum of 4 zones per bulb type are supported per bridge. Only recognizing the first 4 zones.");
-              zonesLength = 4;
+              if (bridgeConfig.version !== "v6") {
+                this.log.warn("Only a maximum of 4 zones per bulb type are supported per bridge. Only recognizing the first 4 zones.");
+                zonesLength = 4;
+              } else if (lightType === "fullColor" && bridgeConfig.use8Zone === undefined) {
+                this.log.info("More than 4 fullColor bulbs added to a v6 bridge, enabling 8-zone support. May not work with all bridges/bulbs. Set the `use8Zone` property of the bridge config to either silence this message or disable this functionality.")
+                bridgeConfig.use8Zone = true;
+
+                if (zonesLength > 8) {
+                  this.log.warn("Only a maximum of 8 zones per bulb type are supported per bridge. Only recognizing the first 8 zones.");
+                  zonesLength = 8;
+                }
+              } else if (lightType === "fullColor" && bridgeConfig.use8Zone === false) {
+                zonesLength = 4;
+                bridgeConfig.use8Zone = false;
+              }
             }
 
             if (zonesLength > 0) {
               // If it hasn't been already, initialize a new controller to be used for all zones defined for this bridge
-              if (typeof(bridgeControllers[bridgeConfig.ip_address]) != "object") {
-                bridgeControllers[bridgeConfig.ip_address] = new Milight({
+              if (typeof(bridgeControllers[bridgeConfig.host]) != "object") {
+                bridgeControllers[bridgeConfig.host] = new Milight({
                   ip: bridgeConfig.ip_address,
                   port: bridgeConfig.port,
+                  host: bridgeConfig.host,
                   delayBetweenCommands: bridgeConfig.delay,
                   commandRepeat: bridgeConfig.repeat,
-                  type: bridgeConfig.version
+                  type: bridgeConfig.version,
+                  fullSync: bridgeConfig.fullSync || false,
+                  sendKeepAlives: bridgeConfig.sendKeepAlives,
+                  sessionTimeout: bridgeConfig.sessionTimeout
                 });
 
                 // Attach the right commands to the bridgeController object
                 if (bridgeConfig.version === "v6") {
-                  bridgeControllers[bridgeConfig.ip_address].commands = require("node-milight-promise").commandsV6;
+                  bridgeControllers[bridgeConfig.host].commands = require("node-milight-promise").commandsV6;
                 } else if (bridgeConfig.version === "v3") {
-                  bridgeControllers[bridgeConfig.ip_address].commands = require("node-milight-promise").commands2;
+                  bridgeControllers[bridgeConfig.host].commands = require("node-milight-promise").commands2;
                 } else {
-                  bridgeControllers[bridgeConfig.ip_address].commands = require("node-milight-promise").commands;
+                  bridgeControllers[bridgeConfig.host].commands = require("node-milight-promise").commands;
                 }
 
-                // Used to keep track of the last targeted bulb on this bridge
-                bridgeControllers[bridgeConfig.ip_address].lastSent = {
-                  bulb: ''
+                // Used to keep track of the last targeted bulb
+                bridgeControllers[bridgeConfig.host].lastSent = {
+                  bulb: null
                 };
               }
 
               // Create bulb accessories for all of the defined zones
               for (var i = 0; i < zonesLength; i++) {
                 var bulbConfig = {};
-                if ((bulbConfig.name = bridgeConfig.lights[lightType][i])) {
-                  bulbConfig.type = lightType;
+                if (bulbConfig.name = bridgeConfig.lights[lightType][i]) {
+                  if (lightType === "fullColor" && bridgeConfig.use8Zone === true) {
+                    bulbConfig.type = "fullColor8Zone";
+                  } else {
+                    bulbConfig.type = lightType;
+                  }
                   bulbConfig.zone = i + 1;
                   bulbConfig.debounceTime = bridgeConfig.debounceTime;
-                  var bulb = new MiLightAccessory(bulbConfig, bridgeControllers[bridgeConfig.ip_address], this.log);
+                  var bulb = new MiLightAccessory(bulbConfig, bridgeControllers[bridgeConfig.host], this.log);
                   foundBulbs.push(bulb);
                 } else if (bridgeConfig.lights[lightType][i] !== null) {
                   this.log.error("Unable to add light from '%s' array, index %d", lightType, i);
@@ -116,7 +134,7 @@ MiLightPlatform.prototype.accessories = function(callback) {
           }
         }
       } else {
-        this.log.error("Could not read any lights from bridge %s", bridgeConfig.ip_address);
+        this.log.error("Could not read any lights from bridge %s", bridgeConfig.host);
       }
     }
   } else {
@@ -125,6 +143,13 @@ MiLightPlatform.prototype.accessories = function(callback) {
 
   if (foundBulbs.length <= 0) {
     this.log.error("No valid bulbs found in any bridge.");
+  }
+
+  // Catch errors from node-milight-promise
+  for (const bridgeController in bridgeControllers) {
+    bridgeControllers[bridgeController].ready().catch(function(e) {
+      platform.log.error("[%s] %s", bridgeController, e.message);
+    });
   }
 
   callback(foundBulbs);
@@ -169,7 +194,7 @@ function MiLightAccessory(bulbConfig, bridgeController, log) {
 MiLightAccessory.prototype.setPowerState = function(value, callback) {
   if (value) {
     if (this.lastSent.bulb === this.type + this.zone) {
-      this.log.debug("[" + this.name + "] Ommiting 'on' command as we've sent it to this bulb most recently");
+      this.log.debug("[" + this.name + "] Omitting 'on' command as we've sent it to this bulb most recently");
     } else {
       this.log("[" + this.name + "] Setting power state to on");
       this.lastSent.bulb = this.type + this.zone;
@@ -177,7 +202,7 @@ MiLightAccessory.prototype.setPowerState = function(value, callback) {
     }
   } else {
     this.log("[" + this.name + "] Setting power state to off");
-    this.lastSent.bulb = '';
+    this.lastSent.bulb = null;
     this.light.sendCommands(this.commands[this.type].off(this.zone));
   }
   callback(null);
@@ -198,7 +223,7 @@ MiLightAccessory.prototype.setBrightness = function(value, callback) {
     this.light.sendCommands(this.commands[this.type].nightMode(this.zone));
 
     // Manually clear last bulb sent so that "on" is sent when we next interact with this bulb
-    this.lastSent.bulb = '';
+    this.lastSent.bulb = null;
 
   } else {
     // Send on command to ensure we're addressing the right bulb
@@ -273,7 +298,7 @@ MiLightAccessory.prototype.setHue = function(value, callback) {
 };
 
 MiLightAccessory.prototype.setSaturation = function(value, callback) {
-  if (["rgbw", "bridge", "fullColor"].indexOf(this.type) > -1) {
+  if (["rgbw", "bridge", "fullColor", "fullColor8Zone"].indexOf(this.type) > -1) {
     if (value === 0) {
       // Send on command to ensure we're addressing the right bulb
       this.lightbulbService.setCharacteristic(Characteristic.On, true);
@@ -283,12 +308,12 @@ MiLightAccessory.prototype.setSaturation = function(value, callback) {
       this.swapBrightnessValues(false);
 
       // If this is a fullColor bulb, set the colour temperature to the last stored value, else (rgbw or bridge) just set to white mode
-      if (this.type === "fullColor") {
+      if (["fullColor", "fullColor8Zone"].indexOf(this.type) > -1) {
         this.lightbulbService.getCharacteristic(Characteristic.ColorTemperature).setValue(this.lightbulbService.getCharacteristic(Characteristic.ColorTemperature).value, null);
       } else {
         this.light.sendCommands(this.commands[this.type].whiteMode(this.zone));
       }
-    } else if (this.type === "fullColor") {
+    } else if (["fullColor", "fullColor8Zone"].indexOf(this.type) > -1) {
       // Send on command to ensure we're addressing the right bulb
       this.lightbulbService.setCharacteristic(Characteristic.On, true);
 
@@ -305,7 +330,7 @@ MiLightAccessory.prototype.setSaturation = function(value, callback) {
 };
 
 MiLightAccessory.prototype.setColorTemperature = function(value, callback) {
-  if (this.type === "fullColor") {
+  if (["fullColor", "fullColor8Zone"].indexOf(this.type) > -1) {
     // Send on command to ensure we're addressing the right bulb
     this.lightbulbService.setCharacteristic(Characteristic.On, true);
 
@@ -418,7 +443,7 @@ MiLightAccessory.prototype.getServices = function() {
     .addCharacteristic(new Characteristic.Brightness())
     .on("set", this.update.bind(this));
 
-  if (["fullColor", "rgbw", "rgb", "bridge"].indexOf(this.type) > -1) {
+  if (["fullColor", "fullColor8Zone", "rgbw", "rgb", "bridge"].indexOf(this.type) > -1) {
     this.lightbulbService
       .addCharacteristic(new Characteristic.Saturation())
       .on("set", this.update.bind(this));
@@ -428,9 +453,15 @@ MiLightAccessory.prototype.getServices = function() {
       .on("set", this.update.bind(this));
   }
 
-  if (["fullColor", "white"].indexOf(this.type) > -1) {
+  if (["fullColor", "fullColor8Zone", "white"].indexOf(this.type) > -1) {
     this.lightbulbService
       .addCharacteristic(new Characteristic.ColorTemperature())
+      // maxValue 370 = 2700K (1000000/2700)
+      // minValue 153 = 6500K (1000000/6500)
+      .setProps({
+        maxValue: 370,
+        minValue: 153
+      })
       .on("set", this.update.bind(this));
   }
 
