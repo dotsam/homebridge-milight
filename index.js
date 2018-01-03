@@ -276,10 +276,10 @@ MiLightAccessory.prototype.setHue = function(value, callback, context) {
 
   this.log("[" + this.name + "] Setting hue to %s", value);
 
-  if (["fullColor", "rgbw", "bridge"].indexOf(this.type) > -1 && this.lightbulbService.getCharacteristic(Characteristic.Saturation).value === 0 && this.hue !== -1 && context !== 'internal') {
+  if (["fullColor", "fullColor8Zone", "rgbw", "bridge"].indexOf(this.type) > -1 && this.lightbulbService.getCharacteristic(Characteristic.Saturation).value === 0 && this.hue !== -1 && context !== 'internal') {
     this.log("[" + this.name + "] Saturation is 0, making sure bulb is in white mode");
     // If this is a fullColor bulb, set the colour temperature to the last stored value, else (rgbw or bridge) just set to white mode
-    if (this.type === "fullColor") {
+    if (["fullColor", "fullColor8Zone"].indexOf(this.type) > -1) {
       this.lightbulbService.getCharacteristic(Characteristic.ColorTemperature).setValue(this.lightbulbService.getCharacteristic(Characteristic.ColorTemperature).value, null);
     } else {
       this.light.sendCommands(this.commands[this.type].whiteMode(this.zone));
@@ -297,20 +297,20 @@ MiLightAccessory.prototype.setHue = function(value, callback, context) {
 };
 
 MiLightAccessory.prototype.setSaturation = function(value, callback) {
-  if (["rgbw", "bridge", "fullColor"].indexOf(this.type) > -1) {
+  if (["rgbw", "bridge", "fullColor", "fullColor8Zone"].indexOf(this.type) > -1) {
     if (value === 0) {
       // Send on command to ensure we're addressing the right bulb
       this.lightbulbService.setCharacteristic(Characteristic.On, true);
 
       this.log("[" + this.name + "] Saturation set to 0, setting bulb to white");
       // If this is a fullColor bulb, set the colour temperature to the last stored value, else (rgbw or bridge) just set to white mode
-      if (this.type === "fullColor") {
+      if (["fullColor", "fullColor8Zone"].indexOf(this.type) > -1) {
         this.lightbulbService.getCharacteristic(Characteristic.ColorTemperature).setValue(this.lightbulbService.getCharacteristic(Characteristic.ColorTemperature).value, null);
       } else {
         this.light.sendCommands(this.commands[this.type].whiteMode(this.zone));
       }
     } else {
-      if (this.type === "fullColor") {
+      if (["fullColor", "fullColor8Zone"].indexOf(this.type) > -1) {
         // Send on command to ensure we're addressing the right bulb
         this.lightbulbService.setCharacteristic(Characteristic.On, true);
 
@@ -330,7 +330,7 @@ MiLightAccessory.prototype.setSaturation = function(value, callback) {
 };
 
 MiLightAccessory.prototype.setColorTemperature = function(value, callback) {
-  if (this.type === "fullColor") {
+  if (["fullColor", "fullColor8Zone"].indexOf(this.type) > -1) {
     // Send on command to ensure we're addressing the right bulb
     this.lightbulbService.setCharacteristic(Characteristic.On, true);
 
@@ -408,7 +408,7 @@ MiLightAccessory.prototype.getServices = function() {
     .addCharacteristic(new Characteristic.Brightness())
     .on("set", this.setBrightness.bind(this));
 
-  if (["fullColor", "rgbw", "rgb", "bridge"].indexOf(this.type) > -1) {
+  if (["fullColor", "fullColor8Zone", "rgbw", "rgb", "bridge"].indexOf(this.type) > -1) {
     this.lightbulbService
       .addCharacteristic(new Characteristic.Saturation())
       .on("set", this.setSaturation.bind(this));
@@ -418,7 +418,7 @@ MiLightAccessory.prototype.getServices = function() {
       .on("set", this.setHue.bind(this));
   }
 
-  if (["fullColor", "white"].indexOf(this.type) > -1) {
+  if (["fullColor", "fullColor8Zone", "white"].indexOf(this.type) > -1) {
     this.lightbulbService
       .addCharacteristic(new Characteristic.ColorTemperature())
       .on("set", this.setColorTemperature.bind(this));
