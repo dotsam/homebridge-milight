@@ -10,23 +10,6 @@ module.exports = function(homebridge) {
   Service = homebridge.hap.Service;
   Characteristic = homebridge.hap.Characteristic;
 
-  // Define the standard HomeKit color temperature characteristic until it's in HAP-NodeJS
-  Characteristic.ColorTemperature = function() {
-    Characteristic.call(this, 'Color Temperature', '000000CE-0000-1000-8000-0026BB765291');
-    this.setProps({
-      format: Characteristic.Formats.UINT32,
-      unit: "mired",
-      maxValue: 370,
-      minValue: 153,
-      minStep: 1,
-      perms: [Characteristic.Perms.READ, Characteristic.Perms.WRITE, Characteristic.Perms.NOTIFY]
-    });
-    // maxValue 370 = 2700K (1000000/2700)
-    // minValue 153 = 6500K (1000000/6500)
-    this.value = this.getDefaultValue();
-  };
-  inherits(Characteristic.ColorTemperature, Characteristic);
-
   homebridge.registerPlatform("homebridge-milight", "MiLight", MiLightPlatform);
 };
 
@@ -421,6 +404,12 @@ MiLightAccessory.prototype.getServices = function() {
   if (["fullColor", "fullColor8Zone", "white"].indexOf(this.type) > -1) {
     this.lightbulbService
       .addCharacteristic(new Characteristic.ColorTemperature())
+      // maxValue 370 = 2700K (1000000/2700)
+      // minValue 153 = 6500K (1000000/6500)
+      .setProps({
+        maxValue: 370,
+        minValue: 153
+      })
       .on("set", this.setColorTemperature.bind(this));
   }
 
