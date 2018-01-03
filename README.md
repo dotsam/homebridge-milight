@@ -72,6 +72,12 @@ The node-milight-promise library provides additional debugging output when the M
 
 # Changelog
 
+### 1.1.4
+ * Fix issues with 8 zone fullColor bulbs not being sent the correct commands
+ * Bump minimum Homebridge version to 0.4.27 so we can be sure that the color temperature characteristic will be there, and we can simply modify min/max values
+ * Basic error handling of connection promise from node-milight-promise
+ * Ability to pass through all node-milight-promise options (`fullSync`, `sendKeepAlives`, `sessionTimeout`)
+
 ### 1.1.3
  * Switched to node-milight-promise ^0.3.0
 
