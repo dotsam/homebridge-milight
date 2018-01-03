@@ -87,7 +87,9 @@ MiLightPlatform.prototype.accessories = function(callback) {
                   delayBetweenCommands: bridgeConfig.delay,
                   commandRepeat: bridgeConfig.repeat,
                   type: bridgeConfig.version,
-                  fullSync: false
+                  fullSync: bridgeConfig.fullSync || false,
+                  sendKeepAlives: bridgeConfig.sendKeepAlives,
+                  sessionTimeout: bridgeConfig.sessionTimeout
                 });
 
                 // Attach the right commands to the bridgeController object
