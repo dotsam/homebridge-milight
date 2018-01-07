@@ -481,6 +481,7 @@ MiLightAccessory.prototype.getServices = function() {
         maxValue: 370,
         minValue: 153
       })
+      .updateValue(153)
       .on("set", this.update.bind(this, 'ColorTemperature'));
   }
 
