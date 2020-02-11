@@ -1,0 +1,130 @@
+{
+  "pluginAlias": "MiLight",
+  "pluginType": "platform",
+  "footerDisplay": "For documentation please see http://github.com/dotsam/homebridge-milight",
+  "schema": {
+    "name": {
+      "title": "Name",
+      "type": "string",
+      "default": "MiLight",
+      "required": true
+    },
+    "bridges": {
+      "required": true,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "ip_address": {
+            "title": "IP Address / Hostname",
+            "type": "string",
+            "required": true
+          },
+          "version": {
+            "title": "Protocol Version",
+            "type": "string",
+            "default": "v6",
+            "oneOf": [
+              { "title": "iBox / 3.0 (v6)", "enum": ["v6"] },
+              { "title": "Non-iBox (v3)", "enum": ["v3"] },
+              { "title": "Old Version (v2)", "enum": ["v2"] }
+            ],
+            "required": true
+          },
+          "lights": {
+            "type": "object",
+            "required": true,
+            "properties":{
+              "rgbw":{
+                "type":"array",
+                "required": false,
+                "items":{
+                  "title":"RGBW Light",
+                  "type":"string"
+                }
+              },
+              "fullcolor":{
+                "type":"array",
+                "required": false,
+                "items":{
+                  "title":"Fullcolor Light",
+                  "type":"string"
+                }
+              },
+              "white":{
+                "type":"array",
+                "required": false,
+                "items":{
+                  "title":"White Light",
+                  "type":"string"
+                }
+              },
+              "bridge":{
+                "type":"array",
+                "required": false,
+                "items":{
+                  "title":"Bridge Light",
+                  "type":"string"
+                }
+              }
+            }
+          },
+          "repeat": {
+            "title": "Repeat Message",
+            "type": "number",
+            "required": false
+          },
+          "delay": {
+            "title": "Message Delay",
+            "type": "number",
+            "required": false
+          }
+        }
+      }
+    }
+  },
+  "form": [
+    "name",
+    {
+      "key":"bridges",
+      "items":[
+        "bridges[].ip_address",
+        "bridges[].version",
+        {
+          "key":"bridges[].lights",
+          "items":[
+            {
+              "type": "section",
+              "expandable": true,
+              "expanded": false,
+              "title": "RGBW",
+              "items": [
+                {"key":"bridges[].lights.rgbw", "items":["bridges[].lights.rgbw[]"]}
+              ]
+            },
+            {
+              "type": "section",
+              "expandable": true,
+              "expanded": false,
+              "title": "White",
+              "items": [
+                {"key":"bridges[].lights.white", "items":["bridges[].lights.white[]"]}
+              ]
+            },
+            {
+              "type": "section",
+              "expandable": true,
+              "expanded": false,
+              "title": "Fullcolor",
+              "items": [
+                {"key":"bridges[].lights.fullcolor", "items":["bridges[].lights.fullcolor[]"]}
+              ]
+            }
+          ]
+        },
+        "bridges[].repeat",
+        "bridges[].delay"
+      ]
+    }
+  ]
+}
