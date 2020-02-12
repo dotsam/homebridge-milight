@@ -39,7 +39,6 @@
                 "type":"array",
                 "required": false,
                 "items":{
-                  "title":"RGBW Light",
                   "type":"string"
                 }
               },
@@ -47,7 +46,6 @@
                 "type":"array",
                 "required": false,
                 "items":{
-                  "title":"Fullcolor Light",
                   "type":"string"
                 }
               },
@@ -55,7 +53,6 @@
                 "type":"array",
                 "required": false,
                 "items":{
-                  "title":"White Light",
                   "type":"string"
                 }
               },
@@ -63,7 +60,6 @@
                 "type":"array",
                 "required": false,
                 "items":{
-                  "title":"Bridge Light",
                   "type":"string"
                 }
               }
