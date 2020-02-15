@@ -16,9 +16,16 @@
         "type": "object",
         "properties": {
           "ip_address": {
-            "title": "IP Address / Hostname",
+            "title": "IP Address",
+            "description": "Use IP address",
             "type": "string",
-            "required": true
+            "required": false
+          },
+          "host": {
+            "title": "host",
+            "description": "Use full host name with port like milight-hub:8899",
+            "type": "string",
+            "required": false
           },
           "version": {
             "title": "Protocol Version",
@@ -85,6 +92,7 @@
       "key":"bridges",
       "items":[
         "bridges[].ip_address",
+        "bridges[].host",
         "bridges[].version",
         {
           "key":"bridges[].lights",
