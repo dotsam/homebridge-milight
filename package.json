@@ -15,7 +15,7 @@
   "keywords": [
     "homebridge-plugin"
   ],
-  "peerDepdendencies": {
+  "engines": {
     "homebridge": ">=0.4.27"
   },
   "dependencies": {
