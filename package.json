@@ -15,11 +15,11 @@
   "keywords": [
     "homebridge-plugin"
   ],
-  "peerDepdendencies": {
+  "engines": {
     "homebridge": ">=0.4.27"
   },
   "dependencies": {
-    "node-milight-promise": "^0.3.0",
+    "node-milight-promise": "^0.3.2",
     "underscore": "^1.8.3"
   }
 }
