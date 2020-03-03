@@ -72,6 +72,9 @@ The node-milight-promise library provides additional debugging output when the M
 
 # Changelog
 
+### 1.1.5
+ * Hotfix for Homebridge plugin registration (Thanks @fkistner!)
+
 ### 1.1.4
  * Fix issues with 8 zone fullColor bulbs not being sent the correct commands
  * Bump minimum Homebridge version to 0.4.27 so we can be sure that the color temperature characteristic will be there, and we can simply modify min/max values
@@ -156,4 +159,3 @@ The node-milight-promise library provides additional debugging output when the M
 
 ### 0.0.1
  * Initial move over to plugin architecture
-
