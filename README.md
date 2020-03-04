@@ -74,7 +74,12 @@ The node-milight-promise library provides additional debugging output when the M
 
 # Changelog
 
-### 1.2.0-beta
+### 1.2.0-beta2
+ * Code cleanup for sanity and semantics
+ * Default internal brightness value to 100 for consistency when turning bulbs on after a restart
+ * Better debug logging for debounced update function
+
+### 1.2.0-beta1
  * Added debouncing for all commands received from HomeKit. This allows us to order commands to the bulbs in the way that works best and perform additional logic. The debounce time is currently set to 150ms, which should be a very safe value to prevent command queueing and make sure that a full set of HSV values are received from HomeKit before acting on them. Lower values will cause lights to react more quickly, but could cause command queuing problems, or errors in setting light colour.
  * Now tracking white and colour brightness levels separately so values should correctly reflect based on what mode the lights are in
 
