@@ -74,6 +74,10 @@ The node-milight-promise library provides additional debugging output when the M
 
 # Changelog
 
+### 1.2.1-beta1
+ * Fix for a null zone/bulb defined in the config
+ * Bump version to avoid version 1.2.0 that was previously published in error
+
 ### 1.2.0-beta2
  * Code cleanup for sanity and semantics
  * Default internal brightness value to 100 for consistency when turning bulbs on after a restart
