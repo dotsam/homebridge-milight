@@ -113,7 +113,7 @@ MiLightPlatform.prototype.accessories = function(callback) {
 
               // Create bulb accessories for all of the defined zones
               for (let i = 0; i < zonesLength; i++) {
-                if (bridgeConfig.lights[lightType][i] !== undefined) {
+                if (bridgeConfig.lights[lightType][i] !== null) {
                   const bulbConfig = {
                     name: bridgeConfig.lights[lightType][i],
                     type: (lightType === "fullColor" && bridgeConfig.use8Zone === true) ? "fullColor8Zone" : lightType,
