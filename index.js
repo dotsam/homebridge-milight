@@ -204,7 +204,7 @@ MiLightAccessory.prototype.setOn = function(value, callback) {
     this.bridge.sendCommands(this.commands[this.type].off(this.zone));
   }
 
-  callback(null);
+  callback();
 
   return value;
 };
@@ -250,7 +250,7 @@ MiLightAccessory.prototype.setBrightness = function(value, callback) {
 
         const currentLevel = this.state.Brightness;
 
-        const targetDiff = value - currentLevel;
+        let targetDiff = value - currentLevel;
         const targetDirection = Math.sign(targetDiff);
         targetDiff = Math.max(0, (Math.round(Math.abs(targetDiff) / 10))); // There are 10 steps of brightness
 
@@ -276,7 +276,7 @@ MiLightAccessory.prototype.setBrightness = function(value, callback) {
     }
   }
 
-  callback(null);
+  callback();
 
   return value;
 };
@@ -295,7 +295,7 @@ MiLightAccessory.prototype.setHue = function(value, callback) {
     this.bridge.sendCommands(this.commands[this.type].hue(MilightHelper.hsvToMilightColor([value, 0, 0]), true));
   }
 
-  callback(null);
+  callback();
 
   return value;
 };
@@ -331,7 +331,7 @@ MiLightAccessory.prototype.setSaturation = function(value, callback) {
     this.log.info("[%s] Setting saturation to %s (NOTE: No impact on %s %s bulbs)", this.name, value, this.type, this.log.prefix);
   }
 
-  callback(null);
+  callback();
 
   return value;
 };
@@ -358,7 +358,7 @@ MiLightAccessory.prototype.setColorTemperature = function(value, callback) {
     // White bulbs don't support setting an absolue colour temp, so we'll do some math to figure out how to get there
     const currentLevel = this.state.ColorTemperature;
 
-    const targetDiff = this.mkToMilight(currentLevel, 10) - this.mkToMilight(value, 10);
+    let targetDiff = this.mkToMilight(currentLevel, 10) - this.mkToMilight(value, 10);
     const targetDirection = Math.sign(targetDiff);
     targetDiff = Math.abs(targetDiff);
 
@@ -384,7 +384,7 @@ MiLightAccessory.prototype.setColorTemperature = function(value, callback) {
     }
   }
 
-  callback(null);
+  callback();
 
   return value;
 };
@@ -442,13 +442,13 @@ MiLightAccessory.prototype.update = function(characteristic, value, callback) {
   // This should allow for the correct ordering of commands and simplifies some logic
   this.debounceUpdateBulb();
 
-  callback(null);
+  callback();
 };
 
 MiLightAccessory.prototype.identify = function(callback) {
   this.log("[%s] Identify requested!", this.name);
 
-  callback(null); // success
+  callback(); // success
 };
 
 MiLightAccessory.prototype.getServices = function() {
