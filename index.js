@@ -163,14 +163,8 @@ function MiLightAccessory(bulbConfig, bridgeController, log) {
   // assign to the bridge
   this.bridge = bridgeController;
 
-  // set the version from the bridge
-  this.version = this.bridge.type;
-
   // use the right commands for this bridge
   this.commands = this.bridge.commands;
-
-  // keep track of the last bulb an 'on' command was sent to
-  this.lastSent = this.bridge.lastSent;
 
   // Used to internally track values so we know when to actually send commands (order is important)
   // Should match HAP Characteristic.getDefaultValue()
@@ -191,16 +185,16 @@ function MiLightAccessory(bulbConfig, bridgeController, log) {
 
 MiLightAccessory.prototype.setOn = function(value, callback) {
   if (value) {
-    if (this.lastSent === this.type + this.zone) {
+    if (this.bridge.lastSent === this.type + this.zone) {
       this.log.debug("[%s] Omitting 'on' command as we've sent it to this bulb most recently", this.name);
     } else {
       this.log("[%s] Setting power state to on", this.name);
-      this.lastSent = this.type + this.zone;
+      this.bridge.lastSent = this.type + this.zone;
       this.bridge.sendCommands(this.commands[this.type].on(this.zone));
     }
   } else {
     this.log("[%s] Setting power state to off", this.name);
-    this.lastSent = "";
+    this.bridge.lastSent = "";
     this.bridge.sendCommands(this.commands[this.type].off(this.zone));
   }
 
@@ -224,7 +218,7 @@ MiLightAccessory.prototype.setBrightness = function(value, callback) {
     this.bridge.sendCommands(this.commands[this.type].nightMode(this.zone));
 
     // Manually clear last bulb sent so that "on" is sent when we next interact with this bulb
-    this.lastSent = "";
+    this.bridge.lastSent = "";
 
   } else {
     // Send on command to ensure we're addressing the right bulb
@@ -234,7 +228,7 @@ MiLightAccessory.prototype.setBrightness = function(value, callback) {
 
     // If bulb supports it, set the absolute brightness specified
     if (["rgb", "white"].indexOf(this.type) === -1) {
-      if (this.version === "v6" && this.type !== "bridge") {
+      if (this.bridge.version === "v6" && this.type !== "bridge") {
         this.bridge.sendCommands(this.commands[this.type].brightness(this.zone, value));
       } else {
         this.bridge.sendCommands(this.commands[this.type].brightness(value));
@@ -289,7 +283,7 @@ MiLightAccessory.prototype.setHue = function(value, callback) {
 
   this.swapBrightnessValues(true);
 
-  if (this.version === "v6" && this.type !== "bridge") {
+  if (this.bridge.version === "v6" && this.type !== "bridge") {
     this.bridge.sendCommands(this.commands[this.type].hue(this.zone, MilightHelper.hsvToMilightColor([value, 0, 0]), true));
   } else {
     this.bridge.sendCommands(this.commands[this.type].hue(MilightHelper.hsvToMilightColor([value, 0, 0]), true));
