@@ -72,6 +72,9 @@ The node-milight-promise library provides additional debugging output when the M
 
 # Changelog
 
+### 1.1.6
+ * Set initial color temperature value within the defined range to squelch errors
+
 ### 1.1.5
  * Hotfix for Homebridge plugin registration (Thanks @fkistner!)
 

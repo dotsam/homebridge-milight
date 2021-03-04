@@ -416,6 +416,7 @@ MiLightAccessory.prototype.getServices = function() {
       .addCharacteristic(new Characteristic.ColorTemperature())
       // maxValue 370 = 2700K (1000000/2700)
       // minValue 153 = 6500K (1000000/6500)
+      .updateValue(370)
       .setProps({
         maxValue: 370,
         minValue: 153
