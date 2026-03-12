@@ -1,6 +1,9 @@
 # homebridge-milight
 MiLight/LimitlessLED/Easybulb Plugin for [Homebridge](https://github.com/nfarina/homebridge)
 
+> [!CAUTION]
+> This plugin has been abandoned. I no longer own any of the hardware, and there are far better smart bulb available now. If anyone is interested in this plugin still, the [dev branch](https://github.com/dotsam/homebridge-milight/tree/dev) has some minor improvements.
+
 Uses the [node-milight-promise](https://github.com/mwittig/node-milight-promise) library which features some code from
 [applamp.nl](http://www.applamp.nl/service/applamp-api/) and uses other details from http://www.limitlessled.com/dev/
 
